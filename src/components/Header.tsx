@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
 import { LogOut, Wallet } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Header = () => {
   const { account, connectWallet, disconnectWallet, isConnecting } = useWallet();
@@ -25,18 +26,30 @@ const Header = () => {
           {!account ? (
             <Button 
               onClick={connectWallet} 
-              variant="outline" 
-              className="border-primary hover:bg-primary/20 transition-all"
+              variant="default" 
+              className="relative overflow-hidden group"
               disabled={isConnecting}
             >
-              <Wallet className="w-4 h-4 mr-2" />
-              {isConnecting ? "Connecting..." : "Connect Wallet"}
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-primary via-secondary to-primary opacity-70 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative flex items-center">
+                <Wallet className="w-4 h-4 mr-2" />
+                {isConnecting ? "Connecting..." : "Connect Wallet"}
+              </div>
             </Button>
           ) : (
             <div className="flex items-center space-x-3">
-              <span className="px-3 py-1 rounded-full bg-muted text-sm">
-                {shortenAddress(account)}
-              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="px-3 py-1 rounded-full bg-muted text-sm cursor-pointer hover:bg-muted/70 transition-colors">
+                      {shortenAddress(account)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{account}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button 
                 onClick={disconnectWallet} 
                 variant="ghost" 

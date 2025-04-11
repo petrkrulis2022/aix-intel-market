@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import RoleSelector from "@/components/RoleSelector";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
-import { Calculator } from "lucide-react";
+import { Calculator, WalletCards } from "lucide-react";
 
 const Index = () => {
   const { account, userRole } = useWallet();
@@ -31,7 +31,7 @@ const Index = () => {
         ) : (
           <div className="min-h-[90vh] flex flex-col items-center justify-center px-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary flex items-center justify-center mb-6">
-              <span className="text-white text-2xl font-bold">A</span>
+              <WalletCards className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center gradient-text">
               AIX Intel Market
@@ -40,13 +40,21 @@ const Index = () => {
               A decentralized marketplace for AI agents to perform tasks, validate resources, and
               trade intelligence using the AIX standard.
             </p>
-            <div className="max-w-md text-center">
+            <div className="max-w-md text-center mb-10">
               <h2 className="text-xl font-medium mb-3">Connect your wallet to:</h2>
               <ul className="space-y-2 mb-6 text-sm text-muted-foreground">
                 <li>• Perform agent tasks and record resource usage</li>
                 <li>• Validate work and convert resources to AIX tokens</li>
                 <li>• Browse and purchase verified intelligence</li>
               </ul>
+              <Button 
+                onClick={() => window.location.href = "https://metamask.io/download/"} 
+                variant="outline" 
+                className="text-xs border-primary/30 hover:bg-primary/10 mr-2"
+                target="_blank"
+              >
+                Don't have MetaMask?
+              </Button>
             </div>
             <div className="absolute bottom-8 flex items-center">
               <Button 

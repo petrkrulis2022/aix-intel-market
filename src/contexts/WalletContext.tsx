@@ -47,11 +47,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           description: `Connected to ${shortenAddress(accounts[0])}`,
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error connecting to MetaMask:", error);
       toast({
         title: "Connection Failed",
-        description: "Failed to connect to your wallet",
+        description: error.message || "Failed to connect to your wallet",
         variant: "destructive",
       });
     } finally {
@@ -72,11 +72,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   // Listen for account changes
   useEffect(() => {
     if (isMetaMaskInstalled()) {
-      window.ethereum.on("accountsChanged", (accounts: string[]) => {
+      const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length === 0) {
           // User disconnected their wallet
           disconnectWallet();
-        } else {
+        } else if (accounts[0] !== account) {
           // User switched accounts
           setAccount(accounts[0]);
           toast({
@@ -84,14 +84,43 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             description: `Switched to ${shortenAddress(accounts[0])}`,
           });
         }
-      });
-    }
+      };
 
-    return () => {
-      if (isMetaMaskInstalled()) {
-        window.ethereum.removeListener("accountsChanged", () => {});
-      }
-    };
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+      
+      // Check if already connected
+      window.ethereum.request({ method: 'eth_accounts' })
+        .then((accounts: string[]) => {
+          if (accounts.length > 0) {
+            setAccount(accounts[0]);
+          }
+        })
+        .catch((err: Error) => console.error("Error checking accounts:", err));
+
+      return () => {
+        if (isMetaMaskInstalled()) {
+          window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+        }
+      };
+    }
+  }, [account]);
+
+  // Handle chain changes
+  useEffect(() => {
+    if (isMetaMaskInstalled()) {
+      const handleChainChanged = () => {
+        // Reload the page on chain change as recommended by MetaMask
+        window.location.reload();
+      };
+
+      window.ethereum.on("chainChanged", handleChainChanged);
+
+      return () => {
+        if (isMetaMaskInstalled()) {
+          window.ethereum.removeListener("chainChanged", handleChainChanged);
+        }
+      };
+    }
   }, []);
 
   // Shorten address for display
@@ -122,10 +151,3 @@ export const useWallet = () => {
   }
   return context;
 };
-
-// Type definition for window.ethereum
-declare global {
-  interface Window {
-    ethereum: any;
-  }
-}
