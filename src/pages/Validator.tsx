@@ -1,15 +1,19 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import ValidatorDashboard from "@/components/dashboards/ValidatorDashboard";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Database } from "lucide-react";
+import RecallService from "@/services/RecallService";
+import { toast } from "@/components/ui/use-toast";
+import RecallConfigForm from "@/components/RecallConfigForm";
 
 const Validator = () => {
   const { account, userRole } = useWallet();
   const navigate = useNavigate();
+  const [showRecallSetup, setShowRecallSetup] = useState(false);
 
   // Redirect if no wallet or wrong role
   React.useEffect(() => {
@@ -17,6 +21,26 @@ const Validator = () => {
       navigate("/");
     }
   }, [account, navigate]);
+
+  // Check Recall configuration on component mount
+  useEffect(() => {
+    const isRecallConfigured = RecallService.isConfigured();
+    if (!isRecallConfigured) {
+      setShowRecallSetup(true);
+      toast({
+        title: "Recall Configuration Required",
+        description: "Please configure your Recall Network connection to validate tasks.",
+      });
+    }
+  }, []);
+
+  const handleSetupComplete = () => {
+    setShowRecallSetup(false);
+    toast({
+      title: "Setup Complete",
+      description: "Recall Network connection configured successfully.",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,7 +57,32 @@ const Validator = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" /> Change Role
               </Button>
             </div>
-            <ValidatorDashboard />
+            
+            {showRecallSetup ? (
+              <div className="container mx-auto px-4 py-6">
+                <div className="max-w-lg mx-auto">
+                  <div className="flex items-center justify-center mb-6">
+                    <Database className="h-16 w-16 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-center mb-6">Configure Recall Network</h2>
+                  <p className="text-muted-foreground text-center mb-8">
+                    As an AIX validator, you need to connect to the Recall Network to access chain of thought logs 
+                    and validate resource usage for AIX token calculations.
+                  </p>
+                  <RecallConfigForm onConfigSaved={handleSetupComplete} />
+                  <div className="mt-6 text-center">
+                    <Button 
+                      variant="link" 
+                      onClick={() => setShowRecallSetup(false)}
+                    >
+                      Skip for now (You can configure later)
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <ValidatorDashboard />
+            )}
           </>
         )}
       </div>

@@ -22,6 +22,10 @@ const Index = () => {
     }
   }, [userRole, navigate]);
 
+  const handleMetamaskRedirect = () => {
+    window.open("https://metamask.io/download/", "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -48,10 +52,9 @@ const Index = () => {
                 <li>• Browse and purchase verified intelligence</li>
               </ul>
               <Button 
-                onClick={() => window.location.href = "https://metamask.io/download/"} 
+                onClick={handleMetamaskRedirect} 
                 variant="outline" 
                 className="text-xs border-primary/30 hover:bg-primary/10 mr-2"
-                target="_blank"
               >
                 Don't have MetaMask?
               </Button>
