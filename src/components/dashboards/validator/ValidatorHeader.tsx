@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Search, Database, RefreshCw, InfoCircle } from "lucide-react";
+import { Search, Database, RefreshCw, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ValidatorHeaderProps {
@@ -22,7 +22,7 @@ const ValidatorHeader: React.FC<ValidatorHeaderProps> = ({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <InfoCircle className="h-5 w-5 text-muted-foreground hover:text-primary cursor-help" />
+              <Info className="h-5 w-5 text-muted-foreground hover:text-primary cursor-help" />
             </TooltipTrigger>
             <TooltipContent className="max-w-sm">
               <p>The AIX Validator analyzes agent chain-of-thought logs to determine computational resource usage and calculate appropriate AIX valuations.</p>

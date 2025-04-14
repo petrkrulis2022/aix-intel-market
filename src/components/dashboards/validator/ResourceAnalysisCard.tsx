@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calculator, Cpu, Memory, Clock } from "lucide-react";
+import { Calculator, Cpu, HardDrive, Clock } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface ResourceAnalysisCardProps {
@@ -77,7 +77,7 @@ const ResourceAnalysisCard: React.FC<ResourceAnalysisCardProps> = ({ resourceDat
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Memory Usage:</p>
             <div className="flex items-center">
-              <Memory className="h-4 w-4 mr-1 text-purple-500" />
+              <HardDrive className="h-4 w-4 mr-1 text-purple-500" />
               <p className="font-medium">{(resourceData.resources.memory?.average_bytes / 1024 / 1024 / 1024).toFixed(1)} GB</p>
             </div>
           </div>

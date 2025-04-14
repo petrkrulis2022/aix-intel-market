@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Cpu, Memory, Clock } from "lucide-react";
+import { Cpu, HardDrive, Clock } from "lucide-react";
 
 interface ResourceAnalysisDialogProps {
   open: boolean;
@@ -68,7 +68,7 @@ const ResourceAnalysisDialog: React.FC<ResourceAnalysisDialogProps> = ({
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">Memory Usage:</p>
               <div className="flex items-center">
-                <Memory className="h-4 w-4 mr-1 text-purple-500" />
+                <HardDrive className="h-4 w-4 mr-1 text-purple-500" />
                 <p className="font-medium">
                   {(resourceData.resources.memory?.average_bytes / 1024 / 1024 / 1024).toFixed(1)} GB
                 </p>
