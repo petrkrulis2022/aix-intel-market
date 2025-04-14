@@ -7,10 +7,23 @@ export class AgentService {
   private baseUrl: string = "https://api.yourdomain.com"; // Replace with your actual API endpoint
 
   private constructor() {
-    // Initialize with environment-specific configuration
+    // Initialize with environment-specific configuration or from localStorage
     if (process.env.NODE_ENV === "development") {
       // Use local dev server during development
       this.baseUrl = "http://localhost:3000";
+    }
+    
+    // Check if there's a saved configuration in localStorage
+    const savedConfig = localStorage.getItem("agent_config");
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        if (config.baseUrl) {
+          this.baseUrl = config.baseUrl;
+        }
+      } catch (error) {
+        console.error("Failed to parse saved agent configuration:", error);
+      }
     }
   }
 
@@ -29,12 +42,18 @@ export class AgentService {
    */
   public configure(config: { baseUrl: string }): void {
     this.baseUrl = config.baseUrl;
+    // Save configuration to localStorage
+    localStorage.setItem("agent_config", JSON.stringify({ baseUrl: config.baseUrl }));
   }
 
   /**
    * Send a message to the agent and get a response
    */
   public async sendMessage(message: string): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("Agent service is not configured. Please set the API endpoint in Agent Configuration.");
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/agent/message`, {
         method: "POST",
@@ -67,6 +86,10 @@ export class AgentService {
     taskId: string;
     status: string;
   }> {
+    if (!this.isConfigured()) {
+      throw new Error("Agent service is not configured. Please set the API endpoint in Agent Configuration.");
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/agent/task`, {
         method: "POST",
@@ -96,6 +119,10 @@ export class AgentService {
     status: string;
     createdAt: string;
   }>> {
+    if (!this.isConfigured()) {
+      throw new Error("Agent service is not configured. Please set the API endpoint in Agent Configuration.");
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/api/agent/tasks`);
 
@@ -108,6 +135,15 @@ export class AgentService {
       console.error("Error fetching tasks:", error);
       throw error;
     }
+  }
+
+  /**
+   * Check if the agent service is properly configured
+   */
+  private isConfigured(): boolean {
+    return this.baseUrl !== "https://api.yourdomain.com" && 
+           this.baseUrl !== "" && 
+           this.baseUrl !== undefined;
   }
 }
 

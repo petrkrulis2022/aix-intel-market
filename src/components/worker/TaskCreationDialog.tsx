@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import AgentService from "@/services/AgentService";
 
 interface TaskCreationDialogProps {
@@ -24,6 +26,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   const [description, setDescription] = useState("");
   const [taskType, setTaskType] = useState("analysis");
   const [isCreating, setIsCreating] = useState(false);
+  const [showConfigAlert, setShowConfigAlert] = useState(false);
   
   // For agent chat
   const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "agent", content: string}>>([
@@ -31,6 +34,22 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   ]);
   const [messageInput, setMessageInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  // Check agent configuration on dialog open
+  React.useEffect(() => {
+    if (open) {
+      try {
+        const savedConfig = localStorage.getItem("agent_config");
+        const isConfigured = savedConfig && 
+          JSON.parse(savedConfig).baseUrl && 
+          JSON.parse(savedConfig).baseUrl !== "https://api.yourdomain.com";
+        
+        setShowConfigAlert(!isConfigured);
+      } catch (error) {
+        setShowConfigAlert(true);
+      }
+    }
+  }, [open]);
 
   const handleCreateTask = async () => {
     if (!title.trim()) {
@@ -68,9 +87,10 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       ]);
       onOpenChange(false);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Task Creation Failed",
-        description: "There was an error creating your task. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -90,15 +110,31 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       const response = await AgentService.sendMessage(userMessage);
       setChatMessages(prev => [...prev, { role: "agent", content: response }]);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Message Failed",
-        description: "Failed to get a response from the agent.",
+        description: errorMessage,
         variant: "destructive",
       });
-      console.error(error);
+      
+      // Add error as an agent message for better UX
+      setChatMessages(prev => [...prev, { 
+        role: "agent", 
+        content: "Sorry, I couldn't process your message. " + errorMessage 
+      }]);
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleConfigureAgent = () => {
+    onOpenChange(false);
+    // Wait for dialog to close before opening config
+    setTimeout(() => {
+      document.querySelector('[aria-label="Configure Agent"]')?.dispatchEvent(
+        new MouseEvent('click', { bubbles: true })
+      );
+    }, 100);
   };
 
   return (
@@ -110,6 +146,22 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
             Work with Eliza to define and create a new task
           </DialogDescription>
         </DialogHeader>
+        
+        {showConfigAlert && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              Agent backend is not configured. 
+              <Button 
+                variant="link" 
+                className="px-2 py-0 h-auto text-destructive underline" 
+                onClick={handleConfigureAgent}
+              >
+                Configure now
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow overflow-hidden">
           {/* Task details form */}
@@ -190,10 +242,11 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
                     handleSendMessage();
                   }
                 }}
+                disabled={showConfigAlert}
               />
               <Button 
                 onClick={handleSendMessage} 
-                disabled={isSending || !messageInput.trim()}
+                disabled={isSending || !messageInput.trim() || showConfigAlert}
               >
                 Send
               </Button>
@@ -205,7 +258,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreateTask} disabled={isCreating}>
+          <Button onClick={handleCreateTask} disabled={isCreating || showConfigAlert}>
             {isCreating ? "Creating..." : "Create Task"}
           </Button>
         </DialogFooter>
