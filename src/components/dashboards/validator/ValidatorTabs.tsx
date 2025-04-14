@@ -15,6 +15,7 @@ interface ValidatorTabsProps {
   onOpenRecallPortal: () => void;
   onShowChainOfThought: () => void;
   discoveredTasks?: string[];
+  isTaskListed?: (taskId: string) => boolean;
 }
 
 const ValidatorTabs: React.FC<ValidatorTabsProps> = ({
@@ -26,6 +27,7 @@ const ValidatorTabs: React.FC<ValidatorTabsProps> = ({
   onOpenRecallPortal,
   onShowChainOfThought,
   discoveredTasks = [],
+  isTaskListed = () => false,
 }) => {
   // Sample tasks for demo purposes
   const staticTasks = [
@@ -122,6 +124,7 @@ const ValidatorTabs: React.FC<ValidatorTabsProps> = ({
             resources="29.4 core-hours"
             claimedValue="15.21 AIX"
             verifiedValue="14.85 AIX"
+            isListed={isTaskListed("task3")}
           />
         </div>
       </TabsContent>
