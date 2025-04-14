@@ -51,6 +51,14 @@ export class RecallClient {
     }
     
     // In a real implementation, this would call the Recall API
-    return ['bucket1', 'bucket2', 'bucket3', this.config?.bucketAlias || ''];
+    const buckets = ['bucket1', 'bucket2', 'bucket3'];
+    
+    // Add the configured bucket alias if it's not empty
+    if (this.config?.bucketAlias && this.config.bucketAlias.trim() !== '') {
+      buckets.push(this.config.bucketAlias);
+    }
+    
+    // Filter out any empty strings
+    return buckets.filter(bucket => bucket && bucket.trim() !== '');
   }
 }

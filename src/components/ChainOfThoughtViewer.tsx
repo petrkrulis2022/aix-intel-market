@@ -28,10 +28,13 @@ const ChainOfThoughtViewer: React.FC<ChainOfThoughtViewerProps> = ({ onResourceD
     try {
       const bucketList = await RecallService.getBuckets();
       setBuckets(bucketList);
-      if (bucketList.length > 0) {
+      
+      // Only set selected bucket if we have valid buckets and no bucket is currently selected
+      if (bucketList.length > 0 && !selectedBucket) {
         setSelectedBucket(bucketList[0]);
       }
     } catch (error) {
+      console.error("Error fetching buckets:", error);
       toast({
         title: "Error Fetching Buckets",
         description: "Failed to retrieve buckets from Recall Network.",

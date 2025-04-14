@@ -19,20 +19,32 @@ const BucketSelector: React.FC<BucketSelectorProps> = ({
   fetchBuckets,
   isLoading,
 }) => {
+  // Ensure we have valid buckets to display
+  const validBuckets = buckets.filter(bucket => bucket && bucket.trim() !== '');
+  
   return (
     <div className="flex items-end gap-2">
       <div className="flex-1">
         <label className="text-sm font-medium mb-1 block">Select Bucket</label>
-        <Select value={selectedBucket} onValueChange={setSelectedBucket}>
+        <Select 
+          value={selectedBucket || undefined} 
+          onValueChange={setSelectedBucket}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select a bucket" />
           </SelectTrigger>
           <SelectContent>
-            {buckets.map((bucket) => (
-              <SelectItem key={bucket} value={bucket}>
-                {bucket}
+            {validBuckets.length > 0 ? (
+              validBuckets.map((bucket) => (
+                <SelectItem key={bucket} value={bucket}>
+                  {bucket}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="no-buckets" disabled>
+                No buckets available
               </SelectItem>
-            ))}
+            )}
           </SelectContent>
         </Select>
       </div>
