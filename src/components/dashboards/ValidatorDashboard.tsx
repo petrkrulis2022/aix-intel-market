@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import RecallService from "@/services/RecallService";
 import ChainOfThoughtViewer from "@/components/ChainOfThoughtViewer";
 import RecallConfigForm from "@/components/RecallConfigForm";
+import MarketplaceSubmissionDialog from "@/components/validator/MarketplaceSubmissionDialog";
 
 // Import refactored components
 import ValidatorHeader from "./validator/ValidatorHeader";
@@ -14,10 +15,13 @@ import RecallPortalInfoDialog from "./validator/RecallPortalInfoDialog";
 const ValidatorDashboard = () => {
   const [showRecallConfig, setShowRecallConfig] = useState(false);
   const [showChainOfThought, setShowChainOfThought] = useState(false);
+  const [showMarketplaceSubmission, setShowMarketplaceSubmission] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [resourceData, setResourceData] = useState<any>(null);
   const [aixValuation, setAixValuation] = useState<any>(null);
   const [showRecallPortalInfo, setShowRecallPortalInfo] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [discoveredTasks, setDiscoveredTasks] = useState<string[]>([]);
 
   const handleViewChainOfThought = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -42,11 +46,58 @@ const ValidatorDashboard = () => {
       return;
     }
     
-    // Validate task using the resource data
+    // Open marketplace submission dialog
+    setShowMarketplaceSubmission(true);
+  };
+
+  const handleSubmitToMarketplace = () => {
     toast({
-      title: "Task Validated",
-      description: `Task has been validated with ${aixValuation?.aix_value.toFixed(2)} AIX tokens.`,
+      title: "Task Listed",
+      description: "The task has been successfully listed on the marketplace.",
     });
+    setShowMarketplaceSubmission(false);
+  };
+
+  const handleFindTasks = async () => {
+    // Check if Recall is configured
+    if (!RecallService.isConfigured()) {
+      setShowRecallConfig(true);
+      toast({
+        title: "Configuration Required",
+        description: "Please configure your Recall Network connection first.",
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Get available buckets
+      const buckets = await RecallService.getBuckets();
+      if (buckets.length === 0) {
+        toast({
+          title: "No Buckets Found",
+          description: "No buckets found in your Recall Network account.",
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      // Set discovered task IDs (using bucket names as task IDs for demo)
+      setDiscoveredTasks(buckets);
+      
+      toast({
+        title: "Tasks Found",
+        description: `Found ${buckets.length} tasks to validate.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error Finding Tasks",
+        description: "An error occurred while searching for tasks to validate.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const openRecallPortal = () => {
@@ -61,7 +112,11 @@ const ValidatorDashboard = () => {
 
   return (
     <div className="p-6">
-      <ValidatorHeader onShowRecallConfig={() => setShowRecallConfig(true)} />
+      <ValidatorHeader 
+        onShowRecallConfig={() => setShowRecallConfig(true)} 
+        onFindTasks={handleFindTasks}
+        isLoading={isLoading}
+      />
       
       <ValidatorTabs
         resourceData={resourceData}
@@ -71,6 +126,7 @@ const ValidatorDashboard = () => {
         onShowRecallConfig={() => setShowRecallConfig(true)}
         onOpenRecallPortal={openRecallPortal}
         onShowChainOfThought={() => setShowChainOfThought(true)}
+        discoveredTasks={discoveredTasks}
       />
 
       {/* Recall Configuration Dialog */}
@@ -98,6 +154,15 @@ const ValidatorDashboard = () => {
           <ChainOfThoughtViewer onResourceDataCalculated={handleResourceDataCalculated} />
         </DialogContent>
       </Dialog>
+
+      {/* Marketplace Submission Dialog */}
+      <MarketplaceSubmissionDialog
+        open={showMarketplaceSubmission}
+        onOpenChange={setShowMarketplaceSubmission}
+        resourceData={resourceData}
+        aixValuation={aixValuation}
+        onSubmit={handleSubmitToMarketplace}
+      />
 
       {/* Recall Portal Info Dialog */}
       <RecallPortalInfoDialog 

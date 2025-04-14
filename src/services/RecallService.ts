@@ -48,13 +48,25 @@ export class RecallService {
   }
 
   /**
-   * Get Chain of Thought logs from a bucket (mock implementation)
+   * Get Chain of Thought log files from a bucket
    */
-  public async getChainOfThoughtLogs(bucketAlias: string): Promise<string[]> {
+  public async getChainOfThoughtLogFiles(bucketName: string): Promise<string[]> {
     if (!this.isConfigured()) {
       throw new Error('Recall service not configured');
     }
     
+    return this.client.getChainOfThoughtLogFiles(bucketName);
+  }
+
+  /**
+   * Get Chain of Thought logs from a specific file (mock implementation)
+   */
+  public async getChainOfThoughtLogContent(bucketName: string, fileName: string): Promise<string[]> {
+    if (!this.isConfigured()) {
+      throw new Error('Recall service not configured');
+    }
+    
+    // In a real implementation, this would fetch the actual log content
     return MockDataGenerator.generateChainOfThoughtLogs();
   }
 
@@ -70,9 +82,9 @@ export class RecallService {
   }
 
   /**
-   * Analyze resource usage from COT logs (mock implementation)
+   * Analyze resource usage from a specific log file (mock implementation)
    */
-  public async analyzeResourceUsage(bucketAlias: string): Promise<RecallResourceData> {
+  public async analyzeResourceUsage(bucketName: string, fileName?: string): Promise<RecallResourceData> {
     if (!this.isConfigured()) {
       throw new Error('Recall service not configured');
     }

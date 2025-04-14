@@ -43,15 +43,26 @@ export class RecallClient {
   }
 
   /**
-   * Get available buckets from Recall Network (mock implementation)
+   * Get available buckets from Recall Network
+   * In a real implementation, this would call the Recall API to fetch user's buckets
    */
   public async getBuckets(): Promise<string[]> {
     if (!this.isConfigured()) {
       throw new Error('Recall client not configured');
     }
     
-    // In a real implementation, this would call the Recall API
-    const buckets = ['bucket1', 'bucket2', 'bucket3'];
+    // Call to real Recall API would be here
+    // For now, this is a mock implementation
+    await this.simulateNetworkDelay();
+    
+    // In a real integration, this would fetch actual buckets from the network
+    const buckets = [
+      'worker_agent_logs',
+      'market_analysis_task',
+      'sentiment_analysis',
+      'price_prediction',
+      'eliza_agent_logs'
+    ];
     
     // Add the configured bucket alias if it's not empty
     if (this.config?.bucketAlias && this.config.bucketAlias.trim() !== '') {
@@ -60,6 +71,27 @@ export class RecallClient {
     
     // Filter out any empty strings
     return buckets.filter(bucket => bucket && bucket.trim() !== '');
+  }
+
+  /**
+   * Get chain of thought log files from a specific bucket
+   * In a real implementation, this would call the Recall API to fetch log files
+   */
+  public async getChainOfThoughtLogFiles(bucketName: string): Promise<string[]> {
+    if (!this.isConfigured()) {
+      throw new Error('Recall client not configured');
+    }
+
+    await this.simulateNetworkDelay();
+
+    // For demonstration, return simulated log file names
+    return [
+      'cot_log_2025-04-10_task1.json',
+      'cot_log_2025-04-11_task2.json',
+      'cot_log_2025-04-12_task3.json',
+      'agent_conversation_2025-04-13.json',
+      'market_analysis_2025-04-14.json'
+    ];
   }
 
   /**
@@ -79,13 +111,14 @@ export class RecallClient {
     console.log(`Uploading logs to Recall Network bucket: ${targetBucket}`);
     console.log('Logs:', logs);
 
-    // This is a mock implementation
-    // In a real implementation, this would make an API call to Recall Network
-    return new Promise((resolve) => {
-      // Simulate network delay
-      setTimeout(() => {
-        resolve(true);
-      }, 500);
-    });
+    await this.simulateNetworkDelay();
+    return true;
+  }
+
+  /**
+   * Helper method to simulate network delay for mock implementations
+   */
+  private simulateNetworkDelay(ms: number = 500): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
