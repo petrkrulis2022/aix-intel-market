@@ -21,7 +21,7 @@ interface MarketplaceSubmissionDialogProps {
   onOpenChange: (open: boolean) => void;
   resourceData: any;
   aixValuation: any;
-  onSubmit: () => void;
+  onSubmit: (title: string, description: string, tags: string[]) => void;
 }
 
 const MarketplaceSubmissionDialog: React.FC<MarketplaceSubmissionDialogProps> = ({
@@ -67,16 +67,24 @@ const MarketplaceSubmissionDialog: React.FC<MarketplaceSubmissionDialogProps> = 
 
     setIsSubmitting(true);
 
-    // Simulate submission to marketplace
-    setTimeout(() => {
-      setIsSubmitting(false);
-      onSubmit();
+    try {
+      onSubmit(title, description, tags);
+      
+      // Reset form state (will be cleared if submission is successful)
+      setTitle("");
+      setDescription("");
+      setTags([]);
+      setTag("");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
-        title: "Task Listed on Marketplace",
-        description: `Your task "${title}" has been successfully listed with a value of ${aixValuation.aix_value.toFixed(2)} AIX.`,
+        title: "Submission Failed",
+        description: errorMessage,
+        variant: "destructive",
       });
-      onOpenChange(false);
-    }, 1000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

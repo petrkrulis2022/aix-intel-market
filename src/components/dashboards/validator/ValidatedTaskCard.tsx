@@ -3,7 +3,8 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, FileCheck, Shield, Calculator } from "lucide-react";
+import { CheckCircle2, FileCheck, Shield, Calculator, ShoppingCart } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 interface ValidatedTaskCardProps {
   title: string;
@@ -13,6 +14,8 @@ interface ValidatedTaskCardProps {
   resources: string;
   claimedValue: string;
   verifiedValue: string;
+  onAddToMarketplace?: () => void;
+  isListed?: boolean;
 }
 
 const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
@@ -23,7 +26,20 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
   resources,
   claimedValue,
   verifiedValue,
+  onAddToMarketplace,
+  isListed = false,
 }) => {
+  const handleAddToMarketplace = () => {
+    if (onAddToMarketplace) {
+      onAddToMarketplace();
+    } else {
+      toast({
+        title: "Added to Marketplace",
+        description: `Task "${title}" has been listed on the marketplace with ${verifiedValue} AIX value.`,
+      });
+    }
+  };
+
   return (
     <Card className="border-border/50 bg-card">
       <CardHeader>
@@ -66,7 +82,7 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Status:</span>
                 <span className="flex items-center text-green-500">
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> Listed
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> {isListed ? "Listed on Marketplace" : "Ready"}
                 </span>
               </div>
             </div>
@@ -83,6 +99,17 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
               <Calculator className="h-4 w-4 mr-2" /> AIX Calculation
             </Button>
           </div>
+          
+          {!isListed && (
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="w-full mt-2 bg-gradient-to-r from-primary to-secondary"
+              onClick={handleAddToMarketplace}
+            >
+              <ShoppingCart className="h-4 w-4 mr-2" /> Add to Marketplace
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

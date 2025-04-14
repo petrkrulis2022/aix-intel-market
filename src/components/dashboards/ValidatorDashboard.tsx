@@ -1,11 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import RecallService from "@/services/RecallService";
 import ChainOfThoughtViewer from "@/components/ChainOfThoughtViewer";
 import RecallConfigForm from "@/components/RecallConfigForm";
 import MarketplaceSubmissionDialog from "@/components/validator/MarketplaceSubmissionDialog";
+import MarketplaceService from "@/services/MarketplaceService";
 
 // Import refactored components
 import ValidatorHeader from "./validator/ValidatorHeader";
@@ -22,6 +23,21 @@ const ValidatorDashboard = () => {
   const [showRecallPortalInfo, setShowRecallPortalInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [discoveredTasks, setDiscoveredTasks] = useState<string[]>([]);
+  const [listedTasks, setListedTasks] = useState<string[]>([]);
+
+  // Load listed tasks on mount
+  useEffect(() => {
+    const fetchListedTasks = async () => {
+      try {
+        const tasks = await MarketplaceService.getListedTasks();
+        setListedTasks(tasks.map(task => task.id));
+      } catch (error) {
+        console.error("Error fetching listed tasks:", error);
+      }
+    };
+    
+    fetchListedTasks();
+  }, []);
 
   const handleViewChainOfThought = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -47,15 +63,48 @@ const ValidatorDashboard = () => {
     }
     
     // Open marketplace submission dialog
+    setSelectedTaskId(taskId);
     setShowMarketplaceSubmission(true);
   };
 
-  const handleSubmitToMarketplace = () => {
-    toast({
-      title: "Task Listed",
-      description: "The task has been successfully listed on the marketplace.",
-    });
-    setShowMarketplaceSubmission(false);
+  const handleSubmitToMarketplace = async (title: string, description: string, tags: string[]) => {
+    if (!selectedTaskId || !resourceData || !aixValuation) {
+      toast({
+        title: "Missing Information",
+        description: "Task data, resource data, and AIX valuation are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await MarketplaceService.listTask({
+        id: selectedTaskId,
+        title,
+        description,
+        agent: "Validator Agent",
+        resources: resourceData,
+        aixValuation,
+        tags
+      });
+      
+      // Update listed tasks
+      setListedTasks(prev => [...prev, selectedTaskId]);
+      
+      toast({
+        title: "Task Listed",
+        description: `The task "${title}" has been successfully listed on the marketplace.`,
+      });
+      
+      setShowMarketplaceSubmission(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast({
+        title: "Listing Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleFindTasks = async () => {
@@ -110,6 +159,10 @@ const ValidatorDashboard = () => {
     setAixValuation(aix);
   };
 
+  const isTaskListed = (taskId: string) => {
+    return listedTasks.includes(taskId);
+  };
+
   return (
     <div className="p-6">
       <ValidatorHeader 
@@ -127,6 +180,7 @@ const ValidatorDashboard = () => {
         onOpenRecallPortal={openRecallPortal}
         onShowChainOfThought={() => setShowChainOfThought(true)}
         discoveredTasks={discoveredTasks}
+        isTaskListed={isTaskListed}
       />
 
       {/* Recall Configuration Dialog */}
