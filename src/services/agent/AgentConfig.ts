@@ -1,0 +1,79 @@
+
+/**
+ * Configuration management for the Filecoin Recall AIX Agent
+ * Handles storing and retrieving configuration from localStorage
+ */
+export class AgentConfig {
+  private baseUrl: string = "https://5604-89-103-65-193.ngrok-free.app"; // Default to ngrok URL
+  private isLocalDevelopment: boolean = false;
+
+  constructor() {
+    this.isLocalDevelopment = process.env.NODE_ENV === "development";
+    this.loadSavedConfiguration();
+  }
+
+  /**
+   * Load the saved configuration from localStorage
+   */
+  private loadSavedConfiguration(): void {
+    const savedConfig = localStorage.getItem("agent_config");
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        if (config.baseUrl && config.baseUrl.trim() !== "") {
+          this.baseUrl = config.baseUrl;
+        }
+      } catch (error) {
+        console.error("Failed to parse saved agent configuration:", error);
+      }
+    } else {
+      // Save the default ngrok configuration
+      this.saveConfig();
+    }
+  }
+
+  /**
+   * Configure the agent service with custom settings
+   */
+  public configure(config: { baseUrl: string }): void {
+    if (!config.baseUrl || config.baseUrl.trim() === "") {
+      throw new Error("Backend API URL cannot be empty");
+    }
+    
+    this.baseUrl = config.baseUrl;
+    this.saveConfig();
+  }
+
+  /**
+   * Save the current configuration to localStorage
+   */
+  private saveConfig(): void {
+    localStorage.setItem("agent_config", JSON.stringify({ 
+      baseUrl: this.baseUrl 
+    }));
+  }
+
+  /**
+   * Check if the agent service is properly configured
+   */
+  public isConfigured(): boolean {
+    return this.baseUrl !== "" && this.baseUrl !== undefined;
+  }
+
+  /**
+   * Get the current API URL
+   */
+  public getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  /**
+   * Clear configuration and reset to defaults
+   */
+  public clearConfig(): void {
+    localStorage.removeItem("agent_config");
+    this.baseUrl = "https://5604-89-103-65-193.ngrok-free.app";
+  }
+}
+
+export default new AgentConfig();
