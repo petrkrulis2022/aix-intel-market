@@ -1,17 +1,23 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Cpu, Clock, Zap, ArrowRight, PlusCircle, Hourglass, Database, Hexagon } from "lucide-react";
+import TaskCreationDialog from "@/components/worker/TaskCreationDialog";
 
 const WorkerDashboard = () => {
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold gradient-text">Agent Worker Dashboard</h2>
-        <Button className="bg-gradient-to-r from-primary to-secondary">
+        <Button 
+          className="bg-gradient-to-r from-primary to-secondary"
+          onClick={() => setShowTaskDialog(true)}
+        >
           <PlusCircle className="mr-2 h-4 w-4" /> New Task
         </Button>
       </div>
@@ -119,6 +125,15 @@ const WorkerDashboard = () => {
           </div>
         </TabsContent>
       </Tabs>
+
+      <TaskCreationDialog 
+        open={showTaskDialog} 
+        onOpenChange={setShowTaskDialog} 
+        onTaskCreated={(taskId) => {
+          console.log("Task created with ID:", taskId);
+          // Here you would typically load or refresh tasks
+        }}
+      />
     </div>
   );
 };

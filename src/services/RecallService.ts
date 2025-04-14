@@ -59,6 +59,17 @@ export class RecallService {
   }
 
   /**
+   * Upload Chain of Thought logs to a bucket
+   */
+  public async uploadChainOfThoughtLogs(logs: any[], bucketName?: string): Promise<boolean> {
+    if (!this.isConfigured()) {
+      throw new Error('Recall service not configured');
+    }
+    
+    return this.client.uploadLogs(logs, bucketName);
+  }
+
+  /**
    * Analyze resource usage from COT logs (mock implementation)
    */
   public async analyzeResourceUsage(bucketAlias: string): Promise<RecallResourceData> {

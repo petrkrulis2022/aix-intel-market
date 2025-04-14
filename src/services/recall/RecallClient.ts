@@ -61,4 +61,31 @@ export class RecallClient {
     // Filter out any empty strings
     return buckets.filter(bucket => bucket && bucket.trim() !== '');
   }
+
+  /**
+   * Upload chain of thought logs to the Recall Network
+   * In a real implementation, this would call the Recall API to upload logs
+   */
+  public async uploadLogs(logs: any[], bucketName?: string): Promise<boolean> {
+    if (!this.isConfigured()) {
+      throw new Error('Recall client not configured');
+    }
+
+    const targetBucket = bucketName || this.config?.bucketAlias;
+    if (!targetBucket) {
+      throw new Error('No bucket specified for upload');
+    }
+
+    console.log(`Uploading logs to Recall Network bucket: ${targetBucket}`);
+    console.log('Logs:', logs);
+
+    // This is a mock implementation
+    // In a real implementation, this would make an API call to Recall Network
+    return new Promise((resolve) => {
+      // Simulate network delay
+      setTimeout(() => {
+        resolve(true);
+      }, 500);
+    });
+  }
 }
