@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Users2, ShieldCheck, ShoppingBag } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { toast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const RoleSelector = () => {
   const { setUserRole } = useWallet();
+  const navigate = useNavigate();
 
   const roles = [
     {
@@ -15,31 +17,38 @@ const RoleSelector = () => {
       title: "Agent Worker",
       description: "Perform tasks, record chain of thought, and track resources used",
       icon: <Users2 className="w-10 h-10 text-primary" />,
-      color: "from-primary/20 to-primary/5"
+      color: "from-primary/20 to-primary/5",
+      path: "/worker"
     },
     {
       id: "validator",
       title: "Agent AIX",
       description: "Validate work, verify resources, and convert to AIX tokens",
       icon: <ShieldCheck className="w-10 h-10 text-secondary" />,
-      color: "from-secondary/20 to-secondary/5"
+      color: "from-secondary/20 to-secondary/5",
+      path: "/validator"
     },
     {
       id: "buyer",
       title: "Agent Buyer",
       description: "Browse marketplace, purchase and use completed work",
       icon: <ShoppingBag className="w-10 h-10 text-green-500" />,
-      color: "from-green-500/20 to-green-500/5"
+      color: "from-green-500/20 to-green-500/5",
+      path: "/buyer"
     },
   ];
 
-  const handleRoleSelect = (roleId: string) => {
+  const handleRoleSelect = (roleId: string, path: string) => {
     console.log("Selected role:", roleId);
-    setUserRole(roleId as any);
+    setUserRole(roleId as "worker" | "validator" | "buyer");
+    
     toast({
       title: "Role Selected",
       description: `You've selected the ${roles.find(r => r.id === roleId)?.title} role`,
     });
+    
+    // Navigate directly to the role-specific page
+    navigate(path);
   };
 
   return (
@@ -69,7 +78,7 @@ const RoleSelector = () => {
             <CardContent className="flex-grow relative"></CardContent>
             <CardFooter className="relative">
               <Button 
-                onClick={() => handleRoleSelect(role.id)} 
+                onClick={() => handleRoleSelect(role.id, role.path)} 
                 className="w-full relative overflow-hidden group"
               >
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-primary via-secondary to-primary opacity-70 group-hover:opacity-100 transition-opacity"></div>

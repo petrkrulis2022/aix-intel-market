@@ -21,7 +21,13 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
     if (!onAddTaskToMarketplace) return;
     
     // Generate random resource data for demo purposes
+    const taskId = `worker-task-${Date.now()}`;
+    
     const taskData = {
+      task_id: taskId,
+      agent_id: "worker-agent-1",
+      start_time: new Date(Date.now() - Math.floor(Math.random() * 3600 + 1800) * 1000).toISOString(),
+      end_time: new Date().toISOString(),
       resources: {
         cpu: { average_percent: Math.floor(Math.random() * 60) + 20 },
         gpu: { average_percent: Math.floor(Math.random() * 70) + 20 },

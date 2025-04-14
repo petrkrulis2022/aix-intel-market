@@ -1,19 +1,21 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Search, Database, RefreshCw, Info } from "lucide-react";
+import { Search, Database, RefreshCw, Info, ShoppingCart } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ValidatorHeaderProps {
   onShowRecallConfig: () => void;
   onFindTasks: () => void;
   isLoading?: boolean;
+  onAddToMarketplace?: () => void;
 }
 
 const ValidatorHeader: React.FC<ValidatorHeaderProps> = ({ 
   onShowRecallConfig, 
   onFindTasks,
-  isLoading = false
+  isLoading = false,
+  onAddToMarketplace
 }) => {
   return (
     <div className="flex justify-between items-center mb-6">
@@ -38,6 +40,17 @@ const ValidatorHeader: React.FC<ValidatorHeaderProps> = ({
         >
           <Database className="mr-2 h-4 w-4" /> Recall Config
         </Button>
+        
+        {onAddToMarketplace && (
+          <Button 
+            variant="outline"
+            onClick={onAddToMarketplace}
+            className="border-secondary/30 text-secondary hover:text-secondary"
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" /> Add to Marketplace
+          </Button>
+        )}
+        
         <Button 
           className="bg-gradient-to-r from-secondary to-primary"
           onClick={onFindTasks}
