@@ -13,6 +13,7 @@ const Index = () => {
 
   // Redirect based on user role when selected
   useEffect(() => {
+    console.log("Current user role:", userRole);
     if (userRole === "worker") {
       navigate("/worker");
     } else if (userRole === "validator") {

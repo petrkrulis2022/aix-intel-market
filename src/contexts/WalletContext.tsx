@@ -1,4 +1,3 @@
-
 import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
 
@@ -128,6 +127,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
 
+  const updateUserRole = (role: UserRole) => {
+    console.log("Setting user role:", role);
+    setUserRole(role);
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -135,7 +139,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         connectWallet,
         disconnectWallet,
         userRole,
-        setUserRole,
+        setUserRole: updateUserRole,
         isConnecting,
       }}
     >

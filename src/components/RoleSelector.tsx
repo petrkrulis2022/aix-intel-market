@@ -34,6 +34,7 @@ const RoleSelector = () => {
   ];
 
   const handleRoleSelect = (roleId: string) => {
+    console.log("Selected role:", roleId);
     setUserRole(roleId as any);
     toast({
       title: "Role Selected",
