@@ -11,8 +11,22 @@ import { toast } from "@/components/ui/use-toast";
 import AgentService from "@/services/AgentService";
 
 const Worker = () => {
-  const { account } = useWallet();
   const navigate = useNavigate();
+  // Handle null case when context isn't available yet
+  let walletContext;
+  try {
+    walletContext = useWallet();
+  } catch (error) {
+    console.error("Wallet context error:", error);
+    // Return early with a loading state or redirecting state
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p>Loading wallet context...</p>
+      </div>
+    );
+  }
+  
+  const { account } = walletContext;
   const [showAgentConfig, setShowAgentConfig] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
   const [isBackendOnline, setIsBackendOnline] = useState(false);

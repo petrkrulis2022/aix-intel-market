@@ -1,3 +1,4 @@
+
 import { createContext, useState, useContext, ReactNode, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
 
@@ -12,6 +13,7 @@ interface WalletContextType {
   isConnecting: boolean;
 }
 
+// Create context with a default undefined value
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
@@ -132,22 +134,24 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setUserRole(role);
   };
 
+  // Create context value object
+  const contextValue: WalletContextType = {
+    account,
+    connectWallet,
+    disconnectWallet,
+    userRole,
+    setUserRole: updateUserRole,
+    isConnecting,
+  };
+
   return (
-    <WalletContext.Provider
-      value={{
-        account,
-        connectWallet,
-        disconnectWallet,
-        userRole,
-        setUserRole: updateUserRole,
-        isConnecting,
-      }}
-    >
+    <WalletContext.Provider value={contextValue}>
       {children}
     </WalletContext.Provider>
   );
 };
 
+// Custom hook to use wallet context
 export const useWallet = () => {
   const context = useContext(WalletContext);
   if (context === undefined) {
