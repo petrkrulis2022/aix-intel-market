@@ -1,14 +1,16 @@
 
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileCog } from "lucide-react";
+import { FileCog, ShoppingCart } from "lucide-react";
 import RecallService from "@/services/RecallService";
 import { toast } from "@/components/ui/use-toast";
+import MarketplaceService from "@/services/MarketplaceService";
 
 // Import our components
 import BucketSelector from "./chain-of-thought/BucketSelector";
 import LogsViewer from "./chain-of-thought/LogsViewer";
 import ResourceAnalysisDialog from "./chain-of-thought/ResourceAnalysisDialog";
+import MarketplaceSubmissionDialog from "./validator/MarketplaceSubmissionDialog";
 
 interface ChainOfThoughtViewerProps {
   onResourceDataCalculated?: (resourceData: any, aixValuation: any) => void;
@@ -24,6 +26,7 @@ const ChainOfThoughtViewer: React.FC<ChainOfThoughtViewerProps> = ({ onResourceD
   const [resourceData, setResourceData] = useState<any>(null);
   const [aixValuation, setAixValuation] = useState<any>(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [showMarketplaceDialog, setShowMarketplaceDialog] = useState(false);
 
   const fetchBuckets = async () => {
     setIsLoading(true);
@@ -143,6 +146,56 @@ const ChainOfThoughtViewer: React.FC<ChainOfThoughtViewerProps> = ({ onResourceD
     setCotLogs([]);
   };
 
+  const handleAddToMarketplace = () => {
+    if (!resourceData || !aixValuation) {
+      toast({
+        title: "Resource Analysis Required",
+        description: "Please analyze resources first before adding to marketplace.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setShowMarketplaceDialog(true);
+  };
+
+  const handleMarketplaceSubmit = async (title: string, description: string, tags: string[]) => {
+    if (!selectedBucket || !resourceData || !aixValuation) {
+      toast({
+        title: "Missing Information",
+        description: "Task data, resource data, and AIX valuation are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await MarketplaceService.listTask({
+        id: `${selectedBucket}-${selectedLogFile}`,
+        title,
+        description,
+        agent: "AIX Agent",
+        resources: resourceData,
+        aixValuation,
+        tags
+      });
+      
+      toast({
+        title: "Added to Marketplace",
+        description: `"${title}" has been successfully listed on the marketplace.`,
+      });
+      
+      setShowMarketplaceDialog(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast({
+        title: "Listing Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card className="border-border/50 bg-card">
       <CardHeader>
@@ -175,6 +228,19 @@ const ChainOfThoughtViewer: React.FC<ChainOfThoughtViewerProps> = ({ onResourceD
             fetchChainOfThought={fetchChainOfThought}
             analyzeResourceUsage={analyzeResourceUsage}
           />
+
+          {/* Add to Marketplace button */}
+          {resourceData && aixValuation && (
+            <div className="pt-4 flex justify-end">
+              <button
+                onClick={handleAddToMarketplace}
+                className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Add to Marketplace
+              </button>
+            </div>
+          )}
         </div>
       </CardContent>
 
@@ -183,6 +249,15 @@ const ChainOfThoughtViewer: React.FC<ChainOfThoughtViewerProps> = ({ onResourceD
         onOpenChange={setShowDialog}
         resourceData={resourceData}
         aixValuation={aixValuation}
+      />
+
+      {/* Marketplace Submission Dialog */}
+      <MarketplaceSubmissionDialog
+        open={showMarketplaceDialog}
+        onOpenChange={setShowMarketplaceDialog}
+        resourceData={resourceData}
+        aixValuation={aixValuation}
+        onSubmit={handleMarketplaceSubmit}
       />
     </Card>
   );

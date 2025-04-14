@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Search, Tag, ShoppingCart, Cpu, Clock } from "lucide-react";
+import { AlertCircle, Search, Tag, ShoppingCart, Cpu, Clock, Database } from "lucide-react";
 import MarketplaceService, { MarketplaceTask } from "@/services/MarketplaceService";
 import { toast } from "@/components/ui/use-toast";
 
@@ -34,6 +34,10 @@ const MarketplaceTaskList = () => {
     };
     
     fetchTasks();
+    
+    // Set up polling to refresh the task list every 30 seconds
+    const interval = setInterval(fetchTasks, 30000);
+    return () => clearInterval(interval);
   }, []);
   
   const handleBuyTask = async (taskId: string, taskTitle: string) => {
@@ -68,6 +72,9 @@ const MarketplaceTaskList = () => {
       
     return matchesSearch && matchesTab;
   });
+
+  // Sort tasks by AIX value (highest first)
+  const sortedTasks = [...filteredTasks].sort((a, b) => b.verifiedAixValue - a.verifiedAixValue);
   
   return (
     <div className="space-y-6">
@@ -101,9 +108,9 @@ const MarketplaceTaskList = () => {
             </Card>
           ))}
         </div>
-      ) : filteredTasks.length > 0 ? (
+      ) : sortedTasks.length > 0 ? (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTasks.map((task) => (
+          {sortedTasks.map((task) => (
             <Card key={task.id} className="border-border/50 bg-card overflow-hidden flex flex-col">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start gap-2">

@@ -1,138 +1,138 @@
 
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Cpu, Clock, Zap, ArrowRight, PlusCircle, Hourglass, Database, Hexagon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, Brain, Cpu, ShoppingCart } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 import TaskCreationDialog from "@/components/worker/TaskCreationDialog";
+import RecallService from "@/services/RecallService";
 
-const WorkerDashboard = () => {
-  const [showTaskDialog, setShowTaskDialog] = useState(false);
+interface WorkerDashboardProps {
+  onAddTaskToMarketplace?: (taskData: any, aixData: any) => void;
+}
+
+const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplace }) => {
+  const [showTaskCreation, setShowTaskCreation] = useState(false);
+  const [activeTab, setActiveTab] = useState("tasks");
+  
+  // Demo handler for generating random resources and adding to marketplace
+  const handleQuickAddToMarketplace = () => {
+    if (!onAddTaskToMarketplace) return;
+    
+    // Generate random resource data for demo purposes
+    const taskData = {
+      resources: {
+        cpu: { average_percent: Math.floor(Math.random() * 60) + 20 },
+        gpu: { average_percent: Math.floor(Math.random() * 70) + 20 },
+        memory: { average_bytes: (Math.random() * 4 + 2) * 1024 * 1024 * 1024 }
+      },
+      duration_seconds: Math.floor(Math.random() * 3600) + 1800
+    };
+    
+    // Calculate AIX value
+    const aixValuation = RecallService.calculateAIXValue(taskData);
+    
+    onAddTaskToMarketplace(taskData, aixValuation);
+  };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold gradient-text">Agent Worker Dashboard</h2>
-        <Button 
-          className="bg-gradient-to-r from-primary to-secondary"
-          onClick={() => setShowTaskDialog(true)}
-        >
-          <PlusCircle className="mr-2 h-4 w-4" /> New Task
-        </Button>
+    <div className="container mx-auto py-6 px-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Worker Dashboard</h1>
+          <p className="text-muted-foreground">
+            Create and manage tasks for AI agents to process
+          </p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowTaskCreation(true)}
+            className="flex items-center"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Task
+          </Button>
+          
+          {onAddTaskToMarketplace && (
+            <Button 
+              onClick={handleQuickAddToMarketplace}
+              className="flex items-center bg-gradient-to-r from-primary to-secondary"
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Add Task to Marketplace
+            </Button>
+          )}
+        </div>
       </div>
-
-      <Tabs defaultValue="active" className="w-full">
+      
+      <Tabs 
+        defaultValue="tasks" 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList>
-          <TabsTrigger value="active">Active Tasks</TabsTrigger>
-          <TabsTrigger value="completed">Completed Tasks</TabsTrigger>
-          <TabsTrigger value="resources">Resource Usage</TabsTrigger>
+          <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <Brain className="h-4 w-4" />
+            <span>Tasks</span>
+          </TabsTrigger>
+          <TabsTrigger value="resources" className="flex items-center gap-2">
+            <Cpu className="h-4 w-4" />
+            <span>Resources</span>
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="active">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <Card className="border-border/50 bg-card">
-              <CardHeader>
-                <CardTitle className="flex justify-between">
-                  <span>Market Analysis Task</span>
-                  <span className="text-sm px-2 py-1 bg-primary/20 text-primary rounded-md">In Progress</span>
-                </CardTitle>
-                <CardDescription>Started 35 minutes ago</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Cpu className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">CPU Usage</span>
-                    </div>
-                    <span className="font-medium">68%</span>
-                  </div>
-                  <Progress value={68} className="h-2" />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Hexagon className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">GPU Usage</span>
-                    </div>
-                    <span className="font-medium">42%</span>
-                  </div>
-                  <Progress value={42} className="h-2" />
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Time Elapsed</span>
-                    </div>
-                    <span className="font-medium">35:12</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Database className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Data Processed</span>
-                    </div>
-                    <span className="font-medium">234 MB</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <Zap className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Est. AIX Value</span>
-                    </div>
-                    <span className="font-medium text-primary">12.45 AIX</span>
-                  </div>
-                </div>
-                
-                <div className="mt-6">
-                  <Button variant="outline" className="w-full">
-                    View Details <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border-border/50 bg-card">
-              <CardHeader>
-                <CardTitle className="flex justify-between">
-                  <span>Data Processing Task</span>
-                  <span className="text-sm px-2 py-1 bg-amber-500/20 text-amber-500 rounded-md">Starting</span>
-                </CardTitle>
-                <CardDescription>Initializing resources...</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[240px] flex flex-col items-center justify-center">
-                  <Hourglass className="h-12 w-12 text-muted-foreground animate-pulse mb-3" />
-                  <p className="text-muted-foreground">Task is initializing resources...</p>
-                  <p className="text-xs text-muted-foreground mt-2">This may take a few moments</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="completed">
-          <div className="p-8 text-center">
-            <h3 className="text-xl font-medium mb-2">No completed tasks yet</h3>
-            <p className="text-muted-foreground">Your completed tasks will appear here</p>
-          </div>
+        <TabsContent value="tasks">
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Tasks</CardTitle>
+              <CardDescription>
+                View and manage your agent tasks
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center p-12 text-center">
+                <Brain className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-1">No Tasks Created Yet</h3>
+                <p className="text-sm text-muted-foreground max-w-md mb-4">
+                  Get started by creating a new task for your AI agent to process.
+                </p>
+                <Button onClick={() => setShowTaskCreation(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Create Your First Task
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="resources">
-          <div className="p-8 text-center">
-            <h3 className="text-xl font-medium mb-2">Resource usage statistics</h3>
-            <p className="text-muted-foreground">Detailed resource tracking will be available soon</p>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Resource Usage</CardTitle>
+              <CardDescription>
+                Monitor your agent's resource usage
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center p-12 text-center">
+                <Cpu className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-1">No Resource Data Available</h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Create tasks to see resource utilization data.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
-
-      <TaskCreationDialog 
-        open={showTaskDialog} 
-        onOpenChange={setShowTaskDialog} 
-        onTaskCreated={(taskId) => {
-          console.log("Task created with ID:", taskId);
-          // Here you would typically load or refresh tasks
-        }}
+      
+      <TaskCreationDialog
+        open={showTaskCreation}
+        onOpenChange={setShowTaskCreation}
       />
     </div>
   );
