@@ -1,4 +1,3 @@
-
 /**
  * Service for communicating with the Filecoin Recall AIX Agent
  */
@@ -22,9 +21,9 @@ export class AgentService {
       } catch (error) {
         console.error("Failed to parse saved agent configuration:", error);
       }
-    } else if (this.isLocalDevelopment) {
-      // Use local dev server during development if no config exists
-      this.baseUrl = "http://localhost:3000";
+    } else {
+      // Explicitly set to localhost:3001 for local development
+      this.baseUrl = "http://localhost:3001";
       this.saveConfig();
     }
   }
