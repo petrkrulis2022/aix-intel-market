@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Search, Database, RefreshCw } from "lucide-react";
+import { Search, Database, RefreshCw, InfoCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ValidatorHeaderProps {
   onShowRecallConfig: () => void;
@@ -16,7 +17,19 @@ const ValidatorHeader: React.FC<ValidatorHeaderProps> = ({
 }) => {
   return (
     <div className="flex justify-between items-center mb-6">
-      <h2 className="text-3xl font-bold gradient-text">Agent AIX Dashboard</h2>
+      <div className="flex items-center gap-2">
+        <h2 className="text-3xl font-bold gradient-text">Agent AIX Dashboard</h2>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <InfoCircle className="h-5 w-5 text-muted-foreground hover:text-primary cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-sm">
+              <p>The AIX Validator analyzes agent chain-of-thought logs to determine computational resource usage and calculate appropriate AIX valuations.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <div className="flex gap-2">
         <Button 
           variant="outline" 

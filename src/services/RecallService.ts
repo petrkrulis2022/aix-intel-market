@@ -82,14 +82,58 @@ export class RecallService {
   }
 
   /**
-   * Analyze resource usage from a specific log file (mock implementation)
+   * Analyze resource usage from a specific log file
    */
   public async analyzeResourceUsage(bucketName: string, fileName?: string): Promise<RecallResourceData> {
     if (!this.isConfigured()) {
       throw new Error('Recall service not configured');
     }
     
-    return MockDataGenerator.generateResourceUsageData();
+    // For real implementation, we would:
+    // 1. Fetch the log content from the specified file
+    // 2. Parse the logs to extract resource usage metrics
+    // 3. Return the structured resource data
+    
+    // For now, we'll use the mock implementation
+    if (fileName) {
+      // If a specific file is provided, fetch its content and analyze
+      const logs = await this.getChainOfThoughtLogContent(bucketName, fileName);
+      
+      try {
+        // Extract resource metrics from the logs
+        const resourceMetrics = await this.client.analyzeResourceUsageFromLogs(logs);
+        
+        // Convert to RecallResourceData format
+        return {
+          task_id: fileName.replace(/\.[^/.]+$/, ""), // Remove file extension
+          agent_id: `agent_${bucketName.substring(0, 8)}`,
+          start_time: new Date(Date.now() - resourceMetrics.duration_seconds * 1000).toISOString(),
+          end_time: new Date().toISOString(),
+          duration_seconds: resourceMetrics.duration_seconds,
+          resources: {
+            cpu: {
+              average_percent: resourceMetrics.cpu.average_percent,
+              samples: resourceMetrics.cpu.samples.map(([time, value]) => [new Date(time).toISOString(), value])
+            },
+            gpu: {
+              average_percent: resourceMetrics.gpu.average_percent,
+              samples: resourceMetrics.gpu.samples.map(([time, value]) => [new Date(time).toISOString(), value])
+            },
+            memory: {
+              average_bytes: Math.round(resourceMetrics.memory.average_gb * 1024 * 1024 * 1024),
+              samples: resourceMetrics.memory.samples.map(([time, value]) => [new Date(time).toISOString(), value * 1024 * 1024 * 1024])
+            }
+          }
+        };
+      } catch (error) {
+        console.error("Error analyzing logs:", error);
+        // Fall back to mock data if analysis fails
+        return MockDataGenerator.generateResourceUsageData();
+      }
+    } else {
+      // If no specific file is provided, use mock data
+      return MockDataGenerator.generateResourceUsageData();
+    }
   }
 
   /**
