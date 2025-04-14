@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ExternalLink, Settings } from "lucide-react";
 import AgentService from "@/services/AgentService";
 
 interface TaskCreationDialogProps {
@@ -27,35 +27,82 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   const [taskType, setTaskType] = useState("analysis");
   const [isCreating, setIsCreating] = useState(false);
   const [showConfigAlert, setShowConfigAlert] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<"unchecked" | "checking" | "online" | "offline">("unchecked");
+  const [backendUrl, setBackendUrl] = useState("");
   
   // For agent chat
-  const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "agent", content: string}>>([
+  const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "agent" | "system", content: string}>>([
     { role: "agent", content: "Hello! I'm Eliza, your AI assistant. How can I help you with your task today?" }
   ]);
   const [messageInput, setMessageInput] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // Check agent configuration on dialog open
-  React.useEffect(() => {
+  // Check agent configuration and status on dialog open
+  useEffect(() => {
     if (open) {
-      try {
-        const savedConfig = localStorage.getItem("agent_config");
-        const isConfigured = savedConfig && 
-          JSON.parse(savedConfig).baseUrl && 
-          JSON.parse(savedConfig).baseUrl !== "https://api.yourdomain.com";
-        
-        setShowConfigAlert(!isConfigured);
-      } catch (error) {
-        setShowConfigAlert(true);
-      }
+      const checkConfiguration = () => {
+        try {
+          const isConfigured = AgentService.isConfigured();
+          setBackendUrl(AgentService.getBaseUrl());
+          setShowConfigAlert(!isConfigured);
+          
+          if (isConfigured) {
+            setBackendStatus("checking");
+            checkBackendStatus();
+          } else {
+            setBackendStatus("offline");
+          }
+        } catch (error) {
+          setShowConfigAlert(true);
+          setBackendStatus("offline");
+        }
+      };
+      
+      checkConfiguration();
     }
   }, [open]);
+  
+  // Check if the backend is actually online
+  const checkBackendStatus = async () => {
+    try {
+      await AgentService.sendMessage("ping");
+      setBackendStatus("online");
+    } catch (error) {
+      console.error("Backend status check failed:", error);
+      setBackendStatus("offline");
+      
+      // Add system message to chat
+      setChatMessages(prev => [
+        ...prev, 
+        { 
+          role: "system", 
+          content: "⚠️ Cannot connect to agent backend. Please check your configuration or ensure the backend server is running." 
+        }
+      ]);
+      
+      // Show toast notification
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to agent backend. Please check your configuration.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleCreateTask = async () => {
     if (!title.trim()) {
       toast({
         title: "Title Required",
         description: "Please enter a title for your task.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (backendStatus !== "online") {
+      toast({
+        title: "Backend Unavailable",
+        description: "Cannot create task while the backend is offline.",
         variant: "destructive",
       });
       return;
@@ -101,6 +148,20 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   const handleSendMessage = async () => {
     if (!messageInput.trim()) return;
     
+    if (backendStatus !== "online") {
+      // Add system message explaining the issue
+      setChatMessages(prev => [
+        ...prev, 
+        { role: "user", content: messageInput },
+        { 
+          role: "system", 
+          content: "⚠️ Cannot send message: Backend is offline or not properly configured." 
+        }
+      ]);
+      setMessageInput("");
+      return;
+    }
+    
     const userMessage = messageInput.trim();
     setChatMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setMessageInput("");
@@ -110,18 +171,17 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       const response = await AgentService.sendMessage(userMessage);
       setChatMessages(prev => [...prev, { role: "agent", content: response }]);
     } catch (error) {
+      console.error("Error sending message to agent:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast({
-        title: "Message Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
       
-      // Add error as an agent message for better UX
       setChatMessages(prev => [...prev, { 
-        role: "agent", 
-        content: "Sorry, I couldn't process your message. " + errorMessage 
+        role: "system", 
+        content: `Error: ${errorMessage}` 
       }]);
+      
+      // Check if connection is still alive
+      setBackendStatus("checking");
+      checkBackendStatus();
     } finally {
       setIsSending(false);
     }
@@ -147,16 +207,21 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        {showConfigAlert && (
+        {(showConfigAlert || backendStatus === "offline") && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4 mr-2" />
-            <AlertDescription>
-              Agent backend is not configured. 
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                {showConfigAlert 
+                  ? "Agent backend is not configured." 
+                  : `Cannot connect to backend at ${backendUrl}`}
+              </span>
               <Button 
                 variant="link" 
-                className="px-2 py-0 h-auto text-destructive underline" 
+                className="px-2 py-0 h-auto text-destructive underline flex items-center" 
                 onClick={handleConfigureAgent}
               >
+                <Settings className="h-4 w-4 mr-1" />
                 Configure now
               </Button>
             </AlertDescription>
@@ -201,6 +266,18 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
                 className="h-32"
               />
             </div>
+            
+            {backendStatus === "online" && (
+              <div className="text-xs text-green-500 flex items-center mt-2">
+                ✓ Connected to agent backend
+              </div>
+            )}
+            
+            {backendStatus === "checking" && (
+              <div className="text-xs text-amber-500 flex items-center mt-2">
+                ⟳ Checking connection...
+              </div>
+            )}
           </div>
           
           {/* Agent chat */}
@@ -209,13 +286,21 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
               {chatMessages.map((msg, index) => (
                 <div 
                   key={index} 
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex ${
+                    msg.role === "user" 
+                      ? "justify-end" 
+                      : msg.role === "system" 
+                        ? "justify-center" 
+                        : "justify-start"
+                  }`}
                 >
                   <div 
                     className={`max-w-[80%] rounded-lg p-3 ${
                       msg.role === "user" 
                         ? "bg-primary text-primary-foreground" 
-                        : "bg-secondary text-secondary-foreground"
+                        : msg.role === "system"
+                          ? "bg-destructive/20 text-destructive border border-destructive/50"
+                          : "bg-secondary text-secondary-foreground"
                     }`}
                   >
                     {msg.content}
@@ -242,11 +327,10 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
                     handleSendMessage();
                   }
                 }}
-                disabled={showConfigAlert}
               />
               <Button 
                 onClick={handleSendMessage} 
-                disabled={isSending || !messageInput.trim() || showConfigAlert}
+                disabled={isSending || !messageInput.trim() || backendStatus !== "online"}
               >
                 Send
               </Button>
@@ -258,7 +342,10 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreateTask} disabled={isCreating || showConfigAlert}>
+          <Button 
+            onClick={handleCreateTask} 
+            disabled={isCreating || backendStatus !== "online"}
+          >
             {isCreating ? "Creating..." : "Create Task"}
           </Button>
         </DialogFooter>

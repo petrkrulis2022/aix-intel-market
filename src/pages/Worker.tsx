@@ -5,15 +5,17 @@ import Header from "@/components/Header";
 import WorkerDashboard from "@/components/dashboards/WorkerDashboard";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, Settings, Server } from "lucide-react";
 import AgentConfigDialog from "@/components/worker/AgentConfigDialog";
 import { toast } from "@/components/ui/use-toast";
+import AgentService from "@/services/AgentService";
 
 const Worker = () => {
   const { account } = useWallet();
   const navigate = useNavigate();
   const [showAgentConfig, setShowAgentConfig] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
+  const [isBackendOnline, setIsBackendOnline] = useState(false);
 
   // Redirect if no wallet
   useEffect(() => {
@@ -22,26 +24,57 @@ const Worker = () => {
     }
   }, [account, navigate]);
 
-  // Check if agent is configured
+  // Check if agent is configured and backend is online
   useEffect(() => {
+    const checkAgentStatus = async () => {
+      try {
+        const configured = AgentService.isConfigured();
+        setIsConfigured(configured);
+        
+        if (configured) {
+          try {
+            // Don't await this, let it check in the background
+            testBackendConnection();
+          } catch (error) {
+            console.error("Failed to test backend connection:", error);
+            setIsBackendOnline(false);
+          }
+        } else {
+          setIsBackendOnline(false);
+          toast({
+            title: "Agent Configuration Required",
+            description: "Please configure your agent backend to enable communication.",
+          });
+        }
+      } catch (error) {
+        setIsConfigured(false);
+        setIsBackendOnline(false);
+      }
+    };
+    
+    checkAgentStatus();
+  }, [showAgentConfig]);
+  
+  const testBackendConnection = async () => {
     try {
-      const savedConfig = localStorage.getItem("agent_config");
-      const hasValidConfig = savedConfig && 
-        JSON.parse(savedConfig).baseUrl && 
-        JSON.parse(savedConfig).baseUrl !== "https://api.yourdomain.com";
+      await fetch(`${AgentService.getBaseUrl()}/api/health`, {
+        method: "GET",
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
+      setIsBackendOnline(true);
+    } catch (error) {
+      console.error("Backend connection test failed:", error);
+      setIsBackendOnline(false);
       
-      setIsConfigured(hasValidConfig);
-      
-      if (!hasValidConfig) {
+      if (!showAgentConfig) {
         toast({
-          title: "Agent Configuration Required",
-          description: "Please configure your agent backend to enable communication.",
+          title: "Backend Connection Failed",
+          description: "Cannot connect to the agent backend. Check your configuration.",
+          variant: "destructive",
         });
       }
-    } catch (error) {
-      setIsConfigured(false);
     }
-  }, [showAgentConfig]);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,12 +92,22 @@ const Worker = () => {
               </Button>
               
               <Button 
-                variant={isConfigured ? "outline" : "default"}
+                variant={isConfigured && isBackendOnline ? "outline" : "default"}
                 onClick={() => setShowAgentConfig(true)}
-                className={`mb-4 ${!isConfigured ? "bg-primary animate-pulse" : "border-primary/30"}`}
+                className={`mb-4 ${
+                  !isConfigured || !isBackendOnline 
+                    ? "bg-primary animate-pulse" 
+                    : "border-primary/30"
+                }`}
                 aria-label="Configure Agent"
               >
-                <Settings className="h-4 w-4 mr-2" /> Configure Agent
+                <Server className={`h-4 w-4 mr-2 ${isBackendOnline ? "text-green-500" : ""}`} />
+                {isConfigured 
+                  ? isBackendOnline 
+                    ? "Agent Configured" 
+                    : "Agent Offline" 
+                  : "Configure Agent"
+                }
               </Button>
             </div>
             <WorkerDashboard />
