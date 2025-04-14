@@ -32,4 +32,3 @@ export class AgentConnection {
 }
 
 export default new AgentConnection();
-

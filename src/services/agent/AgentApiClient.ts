@@ -8,6 +8,28 @@ import AgentConnection from './AgentConnection';
 
 export class AgentApiClient {
   /**
+   * Handle error responses from the API
+   * @private
+   */
+  private async handleErrorResponse(response: Response): Promise<Error> {
+    try {
+      // Try to parse as JSON first
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorJson = await response.json();
+        return new Error(`Error ${response.status}: ${errorJson.message || errorJson.error || JSON.stringify(errorJson)}`);
+      } else {
+        // Fall back to text
+        const errorText = await response.text();
+        return new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+      }
+    } catch (e) {
+      // If we can't parse the response at all
+      return new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+  }
+
+  /**
    * Send a message to the agent and get a response
    */
   public async sendMessage(message: string): Promise<string> {
@@ -17,7 +39,10 @@ export class AgentApiClient {
 
     try {
       // First check if the server is reachable
-      await AgentConnection.testConnection();
+      const isConnected = await AgentConnection.testConnection();
+      if (!isConnected) {
+        throw new Error("Cannot connect to agent backend. Please check your configuration or ensure the backend server is running.");
+      }
 
       const response = await fetch(`${AgentConfig.getBaseUrl()}/api/agent/message`, {
         method: "POST",
@@ -28,7 +53,7 @@ export class AgentApiClient {
       });
 
       if (!response.ok) {
-        throw await AgentConnection.handleErrorResponse(response);
+        throw await this.handleErrorResponse(response);
       }
 
       const data = await response.json();
@@ -56,7 +81,10 @@ export class AgentApiClient {
 
     try {
       // Ensure connection is available
-      await AgentConnection.testConnection();
+      const isConnected = await AgentConnection.testConnection();
+      if (!isConnected) {
+        throw new Error("Cannot connect to agent backend. Please check your configuration or ensure the backend server is running.");
+      }
       
       const response = await fetch(`${AgentConfig.getBaseUrl()}/api/agent/task`, {
         method: "POST",
@@ -67,7 +95,7 @@ export class AgentApiClient {
       });
 
       if (!response.ok) {
-        throw await AgentConnection.handleErrorResponse(response);
+        throw await this.handleErrorResponse(response);
       }
 
       return await response.json();
@@ -92,12 +120,15 @@ export class AgentApiClient {
 
     try {
       // Ensure connection is available
-      await AgentConnection.testConnection();
+      const isConnected = await AgentConnection.testConnection();
+      if (!isConnected) {
+        throw new Error("Cannot connect to agent backend. Please check your configuration or ensure the backend server is running.");
+      }
       
       const response = await fetch(`${AgentConfig.getBaseUrl()}/api/agent/tasks`);
 
       if (!response.ok) {
-        throw await AgentConnection.handleErrorResponse(response);
+        throw await this.handleErrorResponse(response);
       }
 
       return await response.json();
