@@ -1,10 +1,9 @@
-
 /**
  * Service for communicating with the Filecoin Recall AIX Agent
  */
 export class AgentService {
   private static instance: AgentService;
-  private baseUrl: string = "https://api.yourdomain.com"; // Default placeholder
+  private baseUrl: string = "https://5604-89-103-65-193.ngrok-free.app"; // Default to ngrok URL
   private isLocalDevelopment: boolean = false;
 
   private constructor() {
@@ -29,8 +28,7 @@ export class AgentService {
         console.error("Failed to parse saved agent configuration:", error);
       }
     } else {
-      // Explicitly set to localhost:3001 for local development
-      this.baseUrl = "http://localhost:3001";
+      // Save the default ngrok configuration
       this.saveConfig();
     }
   }
