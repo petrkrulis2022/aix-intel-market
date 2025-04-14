@@ -1,3 +1,4 @@
+
 /**
  * Service for communicating with the Filecoin Recall AIX Agent
  */
@@ -9,7 +10,13 @@ export class AgentService {
   private constructor() {
     // Initialize with environment-specific configuration
     this.isLocalDevelopment = process.env.NODE_ENV === "development";
-    
+    this.loadSavedConfiguration();
+  }
+
+  /**
+   * Load the saved configuration from localStorage
+   */
+  private loadSavedConfiguration(): void {
     // Check if there's a saved configuration in localStorage
     const savedConfig = localStorage.getItem("agent_config");
     if (savedConfig) {
@@ -69,7 +76,7 @@ export class AgentService {
 
     try {
       // First check if the server is reachable with a simple ping
-      await this.pingServer();
+      await this.testBackendConnection();
 
       const response = await fetch(`${this.baseUrl}/api/agent/message`, {
         method: "POST",
@@ -80,8 +87,7 @@ export class AgentService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+        throw await this.handleErrorResponse(response);
       }
 
       const data = await response.json();
@@ -93,12 +99,20 @@ export class AgentService {
   }
 
   /**
+   * Handle error responses from the API
+   */
+  private async handleErrorResponse(response: Response): Promise<Error> {
+    const errorText = await response.text();
+    return new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+  }
+
+  /**
    * Check if the server is reachable
    */
-  private async pingServer(): Promise<void> {
+  public async testBackendConnection(timeoutMs: number = 5000): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       
       const response = await fetch(`${this.baseUrl}/api/health`, {
         method: "GET",
@@ -110,6 +124,8 @@ export class AgentService {
       if (!response.ok) {
         throw new Error(`Server responded with status: ${response.status}`);
       }
+      
+      return true;
     } catch (error) {
       if (error.name === "AbortError") {
         throw new Error("Connection timeout. Server might be down or unreachable.");
@@ -134,6 +150,9 @@ export class AgentService {
     }
 
     try {
+      // Ensure connection is available
+      await this.testBackendConnection();
+      
       const response = await fetch(`${this.baseUrl}/api/agent/task`, {
         method: "POST",
         headers: {
@@ -143,8 +162,7 @@ export class AgentService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+        throw await this.handleErrorResponse(response);
       }
 
       return await response.json();
@@ -168,11 +186,13 @@ export class AgentService {
     }
 
     try {
+      // Ensure connection is available
+      await this.testBackendConnection();
+      
       const response = await fetch(`${this.baseUrl}/api/agent/tasks`);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+        throw await this.handleErrorResponse(response);
       }
 
       return await response.json();
