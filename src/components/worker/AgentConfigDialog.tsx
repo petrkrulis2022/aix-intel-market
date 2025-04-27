@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
   const [connectionStatus, setConnectionStatus] = useState<"untested" | "success" | "failed">("untested");
   const [errorMessage, setErrorMessage] = useState("");
   
-  // Load saved configuration on open
   useEffect(() => {
     if (open) {
       try {
@@ -42,10 +40,8 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
     setErrorMessage("");
     
     try {
-      // Configure temporarily without saving
       AgentService.configure({ baseUrl: url });
       
-      // Try to connect
       console.log(`Testing connection to ${url}`);
       const isConnected = await AgentService.testBackendConnection(5000);
       
@@ -53,7 +49,6 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
         console.log("Connection test successful");
         setConnectionStatus("success");
         
-        // Additional endpoint check
         try {
           const testResponse = await fetch(`${url}/api/health`, { method: 'GET' });
           if (testResponse.ok) {
@@ -105,11 +100,9 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
     }
 
     try {
-      // Test the connection first
       const isConnected = await testConnection(baseUrl);
       
       if (isConnected) {
-        // Save configuration
         AgentService.configure({ baseUrl });
         
         toast({
@@ -143,7 +136,6 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
       const isConnected = await testConnection(defaultUrl);
       
       if (isConnected) {
-        // Reset configuration to default
         AgentService.resetConnection();
         
         toast({
@@ -202,7 +194,6 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
             </p>
           </div>
           
-          {/* Show test feedback */}
           {connectionStatus === "success" && (
             <Alert className="bg-green-500/10 border-green-500 text-green-600">
               <AlertDescription className="flex items-center">

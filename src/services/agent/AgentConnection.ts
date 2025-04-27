@@ -37,8 +37,8 @@ export class AgentConnection {
         console.warn("Health check failed, trying alternative endpoint:", error);
       }
       
-      // If health endpoint fails, try the root endpoint
-      return this.testAlternativeEndpoint(baseUrl, timeoutMs);
+      // If health endpoint fails, try the agent endpoint
+      return this.testAlternativeEndpoint(`${baseUrl}/api/agent`, timeoutMs);
     } catch (error) {
       console.error('Backend connection test failed:', error);
       return this.testAlternativeEndpoint(AgentConfig.getBaseUrl(), timeoutMs);
