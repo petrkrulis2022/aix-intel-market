@@ -2,7 +2,8 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Database, FileCog } from "lucide-react";
+import { Database, FileCog, ExternalLink } from "lucide-react";
+import { useWallet } from "@/contexts/WalletContext";
 
 interface RecallNetworkCardProps {
   onShowRecallConfig: () => void;
@@ -15,6 +16,8 @@ const RecallNetworkCard: React.FC<RecallNetworkCardProps> = ({
   onOpenRecallPortal,
   onShowChainOfThought,
 }) => {
+  const { account } = useWallet();
+
   return (
     <Card className="border-border/50 bg-card">
       <CardHeader>
@@ -44,12 +47,14 @@ const RecallNetworkCard: React.FC<RecallNetworkCardProps> = ({
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Access Recall Portal</h3>
           <p className="text-sm text-muted-foreground">
-            Visit the Recall Portal to manage your buckets and view detailed chain of thought logs.
+            Visit the Recall Portal to manage your buckets and view detailed chain of thought logs. {account ? "Connected with your current wallet account." : "Connect your wallet first."}
           </p>
           <Button 
             onClick={onOpenRecallPortal}
-            className="mt-2 bg-gradient-to-r from-primary to-secondary"
+            className="mt-2 bg-gradient-to-r from-primary to-secondary flex items-center"
+            disabled={!account}
           >
+            <ExternalLink className="w-4 h-4 mr-2" />
             Open Recall Portal
           </Button>
         </div>

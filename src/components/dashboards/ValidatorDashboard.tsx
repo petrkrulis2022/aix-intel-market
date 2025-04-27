@@ -7,6 +7,7 @@ import ChainOfThoughtViewer from "@/components/ChainOfThoughtViewer";
 import RecallConfigForm from "@/components/RecallConfigForm";
 import MarketplaceSubmissionDialog from "@/components/validator/MarketplaceSubmissionDialog";
 import MarketplaceService from "@/services/MarketplaceService";
+import { useWallet } from "@/contexts/WalletContext";
 
 // Import refactored components
 import ValidatorHeader from "./validator/ValidatorHeader";
@@ -24,6 +25,7 @@ const ValidatorDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [discoveredTasks, setDiscoveredTasks] = useState<string[]>([]);
   const [listedTasks, setListedTasks] = useState<string[]>([]);
+  const { account } = useWallet();
 
   // Load listed tasks on mount
   useEffect(() => {
@@ -150,7 +152,17 @@ const ValidatorDashboard = () => {
   };
 
   const openRecallPortal = () => {
-    window.open("https://portal.recall.network/buckets", "_blank");
+    if (!account) {
+      toast({
+        title: "Authentication Required",
+        description: "Please connect your wallet before accessing the Recall Portal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Open Recall Portal in a new tab with the connected wallet address as a parameter
+    window.open(`https://portal.recall.network/buckets?wallet=${account}`, "_blank");
     setShowRecallPortalInfo(true);
   };
 
