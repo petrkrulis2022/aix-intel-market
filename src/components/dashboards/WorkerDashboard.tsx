@@ -1,9 +1,8 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Brain, Cpu, ShoppingCart } from "lucide-react";
+import { MessageSquarePlus, Brain, Cpu } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import TaskCreationDialog from "@/components/worker/TaskCreationDialog";
 import RecallService from "@/services/RecallService";
@@ -16,11 +15,9 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
   const [showTaskCreation, setShowTaskCreation] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   
-  // Demo handler for generating random resources and adding to marketplace
   const handleQuickAddToMarketplace = () => {
     if (!onAddTaskToMarketplace) return;
     
-    // Generate random resource data for demo purposes
     const taskId = `worker-task-${Date.now()}`;
     
     const taskData = {
@@ -36,7 +33,6 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
       duration_seconds: Math.floor(Math.random() * 3600) + 1800
     };
     
-    // Calculate AIX value
     const aixValuation = RecallService.calculateAIXValue(taskData);
     
     onAddTaskToMarketplace(taskData, aixValuation);
@@ -48,18 +44,17 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Worker Dashboard</h1>
           <p className="text-muted-foreground">
-            Create and manage tasks for AI agents to process
+            Ask your AI agent to perform tasks and analyze resources
           </p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2">
           <Button 
-            variant="outline" 
             onClick={() => setShowTaskCreation(true)}
             className="flex items-center"
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Task
+            <MessageSquarePlus className="mr-2 h-4 w-4" />
+            Ask Agent
           </Button>
           
           {onAddTaskToMarketplace && (
@@ -104,11 +99,11 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
                 <Brain className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-1">No Tasks Created Yet</h3>
                 <p className="text-sm text-muted-foreground max-w-md mb-4">
-                  Get started by creating a new task for your AI agent to process.
+                  Start a conversation with your AI agent to create and process tasks.
                 </p>
                 <Button onClick={() => setShowTaskCreation(true)}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Create Your First Task
+                  <MessageSquarePlus className="mr-2 h-4 w-4" />
+                  Ask Agent to Perform Action
                 </Button>
               </div>
             </CardContent>
