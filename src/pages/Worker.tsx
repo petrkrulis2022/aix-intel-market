@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -14,13 +13,11 @@ import MarketplaceSubmissionDialog from "@/components/validator/MarketplaceSubmi
 
 const Worker = () => {
   const navigate = useNavigate();
-  // Handle null case when context isn't available yet
   let walletContext;
   try {
     walletContext = useWallet();
   } catch (error) {
     console.error("Wallet context error:", error);
-    // Return early with a loading state or redirecting state
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p>Loading wallet context...</p>
@@ -36,14 +33,12 @@ const Worker = () => {
   const [selectedTaskData, setSelectedTaskData] = useState<any>(null);
   const [selectedAIXData, setSelectedAIXData] = useState<any>(null);
 
-  // Redirect if no wallet
   useEffect(() => {
     if (!account) {
       navigate("/");
     }
   }, [account, navigate]);
 
-  // Check if agent is configured and backend is online
   useEffect(() => {
     const checkAgentStatus = async () => {
       try {
@@ -52,7 +47,6 @@ const Worker = () => {
         
         if (configured) {
           try {
-            // Don't await this, let it check in the background
             testBackendConnection();
           } catch (error) {
             console.error("Failed to test backend connection:", error);
@@ -167,7 +161,6 @@ const Worker = () => {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    // Simulate data for demo purposes
                     const demoResourceData = {
                       resources: {
                         cpu: { average_percent: 65 },
@@ -221,7 +214,6 @@ const Worker = () => {
               onOpenChange={setShowAgentConfig} 
             />
 
-            {/* Marketplace Submission Dialog */}
             <MarketplaceSubmissionDialog
               open={showMarketplaceDialog}
               onOpenChange={setShowMarketplaceDialog}

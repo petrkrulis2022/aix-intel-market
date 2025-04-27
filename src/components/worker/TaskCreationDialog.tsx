@@ -29,14 +29,12 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   const [backendStatus, setBackendStatus] = useState<"unchecked" | "checking" | "online" | "offline">("unchecked");
   const [backendUrl, setBackendUrl] = useState("");
   
-  // For agent chat
   const [chatMessages, setChatMessages] = useState<Array<{role: "user" | "agent" | "system", content: string}>>([
     { role: "agent", content: "Hello! I'm Eliza, your AI assistant. How can I help you with your task today?" }
   ]);
   const [messageInput, setMessageInput] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // Check agent configuration and status on dialog open
   useEffect(() => {
     if (open) {
       const checkConfiguration = async () => {
@@ -62,10 +60,8 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
     }
   }, [open]);
   
-  // Check if the backend is actually online
   const checkBackendStatus = async () => {
     try {
-      // First test the connection directly
       const isConnected = await AgentService.testBackendConnection(5000);
       
       if (isConnected) {
@@ -73,7 +69,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
         return;
       }
       
-      // If direct connection test failed, try a more comprehensive test
       try {
         await AgentService.sendMessage("ping");
         setBackendStatus("online");
@@ -81,7 +76,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
         console.error("Backend status check failed:", error);
         setBackendStatus("offline");
         
-        // Add system message to chat
         setChatMessages(prev => [
           ...prev, 
           { 
@@ -90,7 +84,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           }
         ]);
         
-        // Show toast notification
         toast({
           title: "Connection Failed",
           description: "Could not connect to agent backend. Please check your configuration.",
@@ -101,7 +94,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       console.error("Backend connection test failed:", error);
       setBackendStatus("offline");
       
-      // Add system message to chat
       setChatMessages(prev => [
         ...prev, 
         { 
@@ -152,7 +144,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
         onTaskCreated(task.taskId);
       }
       
-      // Reset form and close dialog
       setTitle("");
       setDescription("");
       setTaskType("analysis");
@@ -164,11 +155,10 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       console.error("Task creation failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       
-      // Check if this is a 404 error which might indicate incorrect API paths
       if (errorMessage.includes("404")) {
         toast({
           title: "API Endpoint Not Found",
-          description: "The backend API endpoint could not be found. Please check that your backend supports the /task endpoint.",
+          description: "The backend API endpoint could not be found. Please check that your backend supports the /api/agent/task endpoint.",
           variant: "destructive",
         });
       } else {
@@ -187,7 +177,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
     if (!messageInput.trim()) return;
     
     if (backendStatus !== "online") {
-      // Add system message explaining the issue
       setChatMessages(prev => [
         ...prev, 
         { role: "user", content: messageInput },
@@ -212,11 +201,10 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       console.error("Error sending message to agent:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       
-      // Check if this is a 404 error which might indicate incorrect API paths
       if (errorMessage.includes("404")) {
         setChatMessages(prev => [...prev, { 
           role: "system", 
-          content: "Error: The message endpoint could not be found. Please check that your backend supports the /message endpoint." 
+          content: "Error: The message endpoint could not be found. Please check that your backend supports the /api/agent/message endpoint." 
         }]);
       } else {
         setChatMessages(prev => [...prev, { 
@@ -225,7 +213,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
         }]);
       }
       
-      // Check if connection is still alive
       setBackendStatus("checking");
       checkBackendStatus();
     } finally {
@@ -235,7 +222,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
 
   const handleConfigureAgent = () => {
     onOpenChange(false);
-    // Wait for dialog to close before opening config
     setTimeout(() => {
       document.querySelector('[aria-label="Configure Agent"]')?.dispatchEvent(
         new MouseEvent('click', { bubbles: true })
@@ -275,7 +261,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-grow overflow-hidden">
-          {/* Task details form */}
           <div className="space-y-4 border-r pr-4">
             <div className="space-y-2">
               <Label htmlFor="title">Task Title</Label>
@@ -326,7 +311,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
             )}
           </div>
           
-          {/* Agent chat */}
           <div className="flex flex-col h-full">
             <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-muted/30 rounded-md mb-4">
               {chatMessages.map((msg, index) => (
