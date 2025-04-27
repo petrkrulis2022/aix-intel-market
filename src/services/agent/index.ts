@@ -72,6 +72,13 @@ export class AgentService {
   public getBaseUrl(): string {
     return AgentConfig.getBaseUrl();
   }
+
+  /**
+   * Reset connection to the default backend URL
+   */
+  public resetConnection(): void {
+    AgentConfig.resetConnection();
+  }
 }
 
 // Export a singleton instance

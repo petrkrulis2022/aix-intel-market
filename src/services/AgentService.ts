@@ -59,6 +59,10 @@ export class AgentService {
   public getBaseUrl(): string {
     return agentService.getBaseUrl();
   }
+  
+  public resetConnection(): void {
+    agentService.resetConnection();
+  }
 }
 
 // Export a default instance for backward compatibility

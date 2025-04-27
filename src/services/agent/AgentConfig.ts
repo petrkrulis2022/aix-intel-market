@@ -74,6 +74,14 @@ export class AgentConfig {
     localStorage.removeItem("agent_config");
     this.baseUrl = "https://5604-89-103-65-193.ngrok-free.app";
   }
+
+  /**
+   * Reset connection to use the latest ngrok URL
+   */
+  public resetConnection(): void {
+    this.baseUrl = "https://5604-89-103-65-193.ngrok-free.app";
+    this.saveConfig();
+  }
 }
 
 export default new AgentConfig();

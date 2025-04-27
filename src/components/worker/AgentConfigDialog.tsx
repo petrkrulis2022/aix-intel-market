@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Server, Loader2 } from "lucide-react";
+import { AlertCircle, Server, Loader2, RotateCw } from "lucide-react";
 import AgentService from "@/services/AgentService";
 
 interface AgentConfigDialogProps {
@@ -114,6 +114,37 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
     }
   };
 
+  const handleResetConnection = async () => {
+    const defaultUrl = "https://5604-89-103-65-193.ngrok-free.app";
+    setBaseUrl(defaultUrl);
+    
+    try {
+      const isConnected = await testConnection(defaultUrl);
+      
+      if (isConnected) {
+        // Reset configuration to default
+        AgentService.configure({ baseUrl: defaultUrl });
+        
+        toast({
+          title: "Connection Reset",
+          description: "Agent backend connection has been reset to the default URL.",
+        });
+      } else {
+        toast({
+          title: "Reset Failed",
+          description: "Could not connect to the default backend URL.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Reset Error",
+        description: "Failed to reset agent configuration: " + (error.message || "Unknown error"),
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -168,20 +199,32 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
           )}
           
           <div className="flex justify-between items-center">
-            <Button 
-              variant="outline" 
-              onClick={() => testConnection(baseUrl)}
-              disabled={testingConnection || !baseUrl.trim() || baseUrl === "https://api.yourdomain.com"}
-            >
-              {testingConnection ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Testing...
-                </>
-              ) : (
-                "Test Connection"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => testConnection(baseUrl)}
+                disabled={testingConnection || !baseUrl.trim() || baseUrl === "https://api.yourdomain.com"}
+              >
+                {testingConnection ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  "Test Connection"
+                )}
+              </Button>
+              
+              <Button
+                variant="secondary"
+                onClick={handleResetConnection}
+                disabled={testingConnection}
+                className="flex items-center"
+              >
+                <RotateCw className="mr-2 h-4 w-4" />
+                Reset Connection
+              </Button>
+            </div>
             
             <p className="text-xs text-muted-foreground">
               Testing ensures your backend is reachable
