@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MessageSquarePlus, Brain, Cpu } from "lucide-react";
+import { MessageSquarePlus, Brain, Cpu, ShoppingCart } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import TaskCreationDialog from "@/components/worker/TaskCreationDialog";
 import RecallService from "@/services/RecallService";
