@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -95,8 +96,8 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
       const isConnected = await testConnection(baseUrl);
       
       if (isConnected) {
-        // Save to localStorage (already configured in the test)
-        localStorage.setItem("agent_config", JSON.stringify({ baseUrl }));
+        // Save configuration
+        AgentService.configure({ baseUrl });
         
         toast({
           title: "Configuration Saved",
@@ -130,7 +131,7 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
       
       if (isConnected) {
         // Reset configuration to default
-        AgentService.configure({ baseUrl: defaultUrl });
+        AgentService.resetConnection();
         
         toast({
           title: "Connection Reset",

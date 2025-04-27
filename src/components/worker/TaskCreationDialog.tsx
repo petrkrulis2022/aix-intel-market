@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -134,7 +133,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
 
     setIsCreating(true);
     try {
-      console.log("Creating task with:", {title, description, taskType});
+      console.log("Creating task with:", {title, description, type: taskType});
       
       const task = await AgentService.createTask({
         title,
@@ -164,11 +163,21 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
     } catch (error) {
       console.error("Task creation failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast({
-        title: "Task Creation Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      
+      // Check if this is a 404 error which might indicate incorrect API paths
+      if (errorMessage.includes("404")) {
+        toast({
+          title: "API Endpoint Not Found",
+          description: "The backend API endpoint could not be found. Please check that your backend supports the /task endpoint.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Task Creation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsCreating(false);
     }
@@ -203,10 +212,18 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       console.error("Error sending message to agent:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       
-      setChatMessages(prev => [...prev, { 
-        role: "system", 
-        content: `Error: ${errorMessage}` 
-      }]);
+      // Check if this is a 404 error which might indicate incorrect API paths
+      if (errorMessage.includes("404")) {
+        setChatMessages(prev => [...prev, { 
+          role: "system", 
+          content: "Error: The message endpoint could not be found. Please check that your backend supports the /message endpoint." 
+        }]);
+      } else {
+        setChatMessages(prev => [...prev, { 
+          role: "system", 
+          content: `Error: ${errorMessage}` 
+        }]);
+      }
       
       // Check if connection is still alive
       setBackendStatus("checking");

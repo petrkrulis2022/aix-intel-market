@@ -41,9 +41,9 @@ export class AgentApiClient {
       const baseUrl = AgentConfig.getBaseUrl();
       
       // Log the request for debugging
-      console.log(`Sending message to ${baseUrl}/api/agent/message`);
+      console.log(`Sending message to ${baseUrl}/message`);
       
-      const response = await fetch(`${baseUrl}/api/agent/message`, {
+      const response = await fetch(`${baseUrl}/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,9 +83,9 @@ export class AgentApiClient {
       const baseUrl = AgentConfig.getBaseUrl();
       
       // Log the request for debugging
-      console.log(`Creating task at ${baseUrl}/api/agent/task with:`, taskDetails);
+      console.log(`Creating task at ${baseUrl}/task with:`, taskDetails);
       
-      const response = await fetch(`${baseUrl}/api/agent/task`, {
+      const response = await fetch(`${baseUrl}/task`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -122,9 +122,9 @@ export class AgentApiClient {
       const baseUrl = AgentConfig.getBaseUrl();
       
       // Log the request for debugging
-      console.log(`Fetching tasks from ${baseUrl}/api/agent/tasks`);
+      console.log(`Fetching tasks from ${baseUrl}/tasks`);
       
-      const response = await fetch(`${baseUrl}/api/agent/tasks`, {
+      const response = await fetch(`${baseUrl}/tasks`, {
         headers: {
           "Accept": "application/json",
         },
