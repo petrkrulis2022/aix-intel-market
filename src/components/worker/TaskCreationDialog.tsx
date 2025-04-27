@@ -40,7 +40,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   // Check agent configuration and status on dialog open
   useEffect(() => {
     if (open) {
-      const checkConfiguration = () => {
+      const checkConfiguration = async () => {
         try {
           const isConfigured = AgentService.isConfigured();
           setBackendUrl(AgentService.getBaseUrl());
@@ -48,11 +48,12 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           
           if (isConfigured) {
             setBackendStatus("checking");
-            checkBackendStatus();
+            await checkBackendStatus();
           } else {
             setBackendStatus("offline");
           }
         } catch (error) {
+          console.error("Failed to check agent configuration:", error);
           setShowConfigAlert(true);
           setBackendStatus("offline");
         }
@@ -65,10 +66,40 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   // Check if the backend is actually online
   const checkBackendStatus = async () => {
     try {
-      await AgentService.sendMessage("ping");
-      setBackendStatus("online");
+      // First test the connection directly
+      const isConnected = await AgentService.testBackendConnection(5000);
+      
+      if (isConnected) {
+        setBackendStatus("online");
+        return;
+      }
+      
+      // If direct connection test failed, try a more comprehensive test
+      try {
+        await AgentService.sendMessage("ping");
+        setBackendStatus("online");
+      } catch (error) {
+        console.error("Backend status check failed:", error);
+        setBackendStatus("offline");
+        
+        // Add system message to chat
+        setChatMessages(prev => [
+          ...prev, 
+          { 
+            role: "system", 
+            content: "⚠️ Cannot connect to agent backend. Please check your configuration or ensure the backend server is running." 
+          }
+        ]);
+        
+        // Show toast notification
+        toast({
+          title: "Connection Failed",
+          description: "Could not connect to agent backend. Please check your configuration.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error("Backend status check failed:", error);
+      console.error("Backend connection test failed:", error);
       setBackendStatus("offline");
       
       // Add system message to chat
@@ -79,13 +110,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           content: "⚠️ Cannot connect to agent backend. Please check your configuration or ensure the backend server is running." 
         }
       ]);
-      
-      // Show toast notification
-      toast({
-        title: "Connection Failed",
-        description: "Could not connect to agent backend. Please check your configuration.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -110,11 +134,15 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
 
     setIsCreating(true);
     try {
+      console.log("Creating task with:", {title, description, taskType});
+      
       const task = await AgentService.createTask({
         title,
         description,
         type: taskType,
       });
+      
+      console.log("Task created:", task);
       
       toast({
         title: "Task Created",
@@ -134,6 +162,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       ]);
       onOpenChange(false);
     } catch (error) {
+      console.error("Task creation failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Task Creation Failed",

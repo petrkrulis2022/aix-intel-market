@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -46,26 +45,33 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
       AgentService.configure({ baseUrl: url });
       
       // Try to connect
-      await fetch(`${url}/api/health`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
+      console.log(`Testing connection to ${url}`);
+      const isConnected = await AgentService.testBackendConnection(5000);
       
-      setConnectionStatus("success");
-      return true;
+      if (isConnected) {
+        console.log("Connection test successful");
+        setConnectionStatus("success");
+        return true;
+      } else {
+        console.log("Connection test failed");
+        setConnectionStatus("failed");
+        setErrorMessage("Server not responding. Verify the URL is correct and the server is running.");
+        return false;
+      }
     } catch (error) {
       console.error("Connection test failed:", error);
       setConnectionStatus("failed");
       
-      if (error.name === "AbortError") {
-        setErrorMessage("Connection timed out. Server might be down or unreachable.");
-      } else if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-        setErrorMessage("Network error. Check if the URL is correct and the server is running.");
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          setErrorMessage("Connection timed out. Server might be down or unreachable.");
+        } else if (error.message.includes("Failed to fetch")) {
+          setErrorMessage("Network error. Check if the URL is correct and the server is running.");
+        } else {
+          setErrorMessage(error.message || "Unknown error");
+        }
       } else {
-        setErrorMessage(error.message || "Unknown error");
+        setErrorMessage("Unknown error occurred during connection test");
       }
       
       return false;
@@ -106,16 +112,17 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Configuration Error",
-        description: "Failed to save agent configuration: " + (error.message || "Unknown error"),
+        description: "Failed to save agent configuration: " + errorMessage,
         variant: "destructive",
       });
     }
   };
 
   const handleResetConnection = async () => {
-    const defaultUrl = "https://5604-89-103-65-193.ngrok-free.app";
+    const defaultUrl = "https://c0f2-89-103-65-193.ngrok-free.app"; // Updated to the new ngrok URL
     setBaseUrl(defaultUrl);
     
     try {
@@ -137,9 +144,10 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Reset Error",
-        description: "Failed to reset agent configuration: " + (error.message || "Unknown error"),
+        description: "Failed to reset agent configuration: " + errorMessage,
         variant: "destructive",
       });
     }

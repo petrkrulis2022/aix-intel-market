@@ -38,16 +38,16 @@ export class AgentApiClient {
     }
 
     try {
-      // First check if the server is reachable
-      const isConnected = await AgentConnection.testConnection();
-      if (!isConnected) {
-        throw new Error("Cannot connect to agent backend. Please check your configuration or ensure the backend server is running.");
-      }
-
-      const response = await fetch(`${AgentConfig.getBaseUrl()}/api/agent/message`, {
+      const baseUrl = AgentConfig.getBaseUrl();
+      
+      // Log the request for debugging
+      console.log(`Sending message to ${baseUrl}/api/agent/message`);
+      
+      const response = await fetch(`${baseUrl}/api/agent/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
         body: JSON.stringify({ message }),
       });
@@ -80,16 +80,16 @@ export class AgentApiClient {
     }
 
     try {
-      // Ensure connection is available
-      const isConnected = await AgentConnection.testConnection();
-      if (!isConnected) {
-        throw new Error("Cannot connect to agent backend. Please check your configuration or ensure the backend server is running.");
-      }
+      const baseUrl = AgentConfig.getBaseUrl();
       
-      const response = await fetch(`${AgentConfig.getBaseUrl()}/api/agent/task`, {
+      // Log the request for debugging
+      console.log(`Creating task at ${baseUrl}/api/agent/task with:`, taskDetails);
+      
+      const response = await fetch(`${baseUrl}/api/agent/task`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
         body: JSON.stringify(taskDetails),
       });
@@ -119,13 +119,16 @@ export class AgentApiClient {
     }
 
     try {
-      // Ensure connection is available
-      const isConnected = await AgentConnection.testConnection();
-      if (!isConnected) {
-        throw new Error("Cannot connect to agent backend. Please check your configuration or ensure the backend server is running.");
-      }
+      const baseUrl = AgentConfig.getBaseUrl();
       
-      const response = await fetch(`${AgentConfig.getBaseUrl()}/api/agent/tasks`);
+      // Log the request for debugging
+      console.log(`Fetching tasks from ${baseUrl}/api/agent/tasks`);
+      
+      const response = await fetch(`${baseUrl}/api/agent/tasks`, {
+        headers: {
+          "Accept": "application/json",
+        },
+      });
 
       if (!response.ok) {
         throw await this.handleErrorResponse(response);
