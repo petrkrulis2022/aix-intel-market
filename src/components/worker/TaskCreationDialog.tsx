@@ -158,16 +158,35 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       if (errorMessage.includes("404")) {
         toast({
           title: "API Endpoint Not Found",
-          description: "The backend API endpoint could not be found. Please check that your backend supports the /api/agent/task endpoint.",
+          description: "The backend API endpoint could not be found. Please check that your backend supports the /api/task endpoint.",
           variant: "destructive",
         });
+        
+        setChatMessages(prev => [
+          ...prev, 
+          { 
+            role: "system", 
+            content: "Error: The task endpoint could not be found. Please check that your backend supports the /api/task endpoint." 
+          }
+        ]);
       } else {
         toast({
           title: "Task Creation Failed",
           description: errorMessage,
           variant: "destructive",
         });
+        
+        setChatMessages(prev => [
+          ...prev, 
+          { 
+            role: "system", 
+            content: `Error: ${errorMessage}` 
+          }
+        ]);
       }
+      
+      setBackendStatus("checking");
+      checkBackendStatus();
     } finally {
       setIsCreating(false);
     }
@@ -204,7 +223,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       if (errorMessage.includes("404")) {
         setChatMessages(prev => [...prev, { 
           role: "system", 
-          content: "Error: The message endpoint could not be found. Please check that your backend supports the /api/agent/message endpoint." 
+          content: "Error: The message endpoint could not be found. Please check that your backend supports the /api/chat endpoint." 
         }]);
       } else {
         setChatMessages(prev => [...prev, { 

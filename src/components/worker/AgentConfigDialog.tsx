@@ -52,6 +52,19 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
       if (isConnected) {
         console.log("Connection test successful");
         setConnectionStatus("success");
+        
+        // Additional endpoint check
+        try {
+          const testResponse = await fetch(`${url}/api/health`, { method: 'GET' });
+          if (testResponse.ok) {
+            console.log("Health endpoint available");
+          } else {
+            console.warn("Health endpoint returned non-OK status", testResponse.status);
+          }
+        } catch (error) {
+          console.warn("Health endpoint check failed", error);
+        }
+        
         return true;
       } else {
         console.log("Connection test failed");
@@ -123,7 +136,7 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
   };
 
   const handleResetConnection = async () => {
-    const defaultUrl = "https://c0f2-89-103-65-193.ngrok-free.app"; // Updated to the new ngrok URL
+    const defaultUrl = "https://c0f2-89-103-65-193.ngrok-free.app"; 
     setBaseUrl(defaultUrl);
     
     try {

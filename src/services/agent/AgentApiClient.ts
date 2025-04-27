@@ -41,9 +41,9 @@ export class AgentApiClient {
       const baseUrl = AgentConfig.getBaseUrl();
       
       // Log the request for debugging
-      console.log(`Sending message to ${baseUrl}/api/agent/message`);
+      console.log(`Sending message to ${baseUrl}/api/chat`);
       
-      const response = await fetch(`${baseUrl}/api/agent/message`, {
+      const response = await fetch(`${baseUrl}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -57,7 +57,7 @@ export class AgentApiClient {
       }
 
       const data = await response.json();
-      return data.response;
+      return data.response || data.message || "No response from server";
     } catch (error) {
       console.error("Error sending message to agent:", error);
       throw error;
@@ -83,9 +83,9 @@ export class AgentApiClient {
       const baseUrl = AgentConfig.getBaseUrl();
       
       // Log the request for debugging
-      console.log(`Creating task at ${baseUrl}/api/agent/task with:`, taskDetails);
+      console.log(`Creating task at ${baseUrl}/api/task with:`, taskDetails);
       
-      const response = await fetch(`${baseUrl}/api/agent/task`, {
+      const response = await fetch(`${baseUrl}/api/task`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,7 +98,11 @@ export class AgentApiClient {
         throw await this.handleErrorResponse(response);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return {
+        taskId: data.id || data.taskId || `task-${Date.now()}`,
+        status: data.status || "created"
+      };
     } catch (error) {
       console.error("Error creating task:", error);
       throw error;
@@ -122,9 +126,9 @@ export class AgentApiClient {
       const baseUrl = AgentConfig.getBaseUrl();
       
       // Log the request for debugging
-      console.log(`Fetching tasks from ${baseUrl}/api/agent/tasks`);
+      console.log(`Fetching tasks from ${baseUrl}/api/tasks`);
       
-      const response = await fetch(`${baseUrl}/api/agent/tasks`, {
+      const response = await fetch(`${baseUrl}/api/tasks`, {
         headers: {
           "Accept": "application/json",
         },

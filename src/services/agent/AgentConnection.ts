@@ -15,31 +15,30 @@ export class AgentConnection {
       
       console.log(`Testing connection to ${baseUrl}/api/health`);
       
-      const response = await fetch(`${baseUrl}/api/health`, {
-        method: "GET",
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        mode: 'cors',
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        try {
-          const data = await response.json();
-          console.log("Health check response:", data);
+      // Try the health endpoint first
+      try {
+        const response = await fetch(`${baseUrl}/api/health`, {
+          method: "GET",
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          mode: 'cors',
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log("Health check response OK");
           return true;
-        } catch (e) {
-          // If we can't parse JSON but the response is OK, it might be HTML (ngrok page)
-          // Try an alternative endpoint
-          return this.testAlternativeEndpoint(baseUrl, timeoutMs);
         }
+      } catch (error) {
+        console.warn("Health check failed, trying alternative endpoint:", error);
       }
       
-      return false;
+      // If health endpoint fails, try the root endpoint
+      return this.testAlternativeEndpoint(baseUrl, timeoutMs);
     } catch (error) {
       console.error('Backend connection test failed:', error);
       return this.testAlternativeEndpoint(AgentConfig.getBaseUrl(), timeoutMs);
@@ -70,7 +69,12 @@ export class AgentConnection {
       clearTimeout(timeoutId);
       
       // For ngrok tunnels, even getting a response might indicate it's working
-      return response.status !== 0; // If status is 0, it's a CORS or network error
+      if (response.status !== 0) {
+        console.log("Root endpoint connection verified");
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       console.error('Alternative endpoint test failed:', error);
       return false;
