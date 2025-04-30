@@ -18,12 +18,12 @@ export class AgentConnection {
 
     try {
       const baseUrl = AgentConfig.getBaseUrl();
-      console.log(`Testing connection to ${baseUrl}/health`);
+      console.log(`Testing connection to ${baseUrl}/api/agent/health`);
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       
-      const response = await fetch(`${baseUrl}/health`, {
+      const response = await fetch(`${baseUrl}/api/agent/health`, {
         method: "GET",
         signal: controller.signal,
       });
