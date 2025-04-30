@@ -85,6 +85,14 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           }
         } catch (error) {
           console.error("Failed to get initial response:", error);
+          
+          // Check if it's a 404 error and show a helpful message
+          if (error instanceof Error && error.message.includes("404")) {
+            setChatMessages([{ 
+              role: "agent", 
+              content: "Hello! I'm Eliza, your AI assistant. How can I help you with your task today? (Note: I'm in offline mode as the message API endpoint isn't available yet)" 
+            }]);
+          }
         }
         return;
       }
@@ -181,7 +189,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       if (errorMessage.includes("404")) {
         toast({
           title: "API Endpoint Not Found",
-          description: "The backend API endpoint could not be found. Please check that your backend supports the /api/agent/task endpoint.",
+          description: "The backend API endpoint could not be found. Please check that your backend supports the /task endpoint.",
           variant: "destructive",
         });
         
@@ -189,7 +197,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
           ...prev, 
           { 
             role: "system", 
-            content: "Error: The task endpoint could not be found. Please check that your backend supports the /api/agent/task endpoint." 
+            content: "Error: The task endpoint could not be found. Please check that your backend supports the /task endpoint." 
           }
         ]);
       } else {
@@ -257,7 +265,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       if (errorMessage.includes("404")) {
         setChatMessages(prev => [...prev, { 
           role: "system", 
-          content: "Error: The message endpoint could not be found. Please check that your backend supports the /api/agent/message endpoint." 
+          content: "Error: The message endpoint could not be found. Please check that your backend supports the /message endpoint." 
         }]);
       } else {
         setChatMessages(prev => [...prev, { 

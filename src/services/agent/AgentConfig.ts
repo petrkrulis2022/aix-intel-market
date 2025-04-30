@@ -4,7 +4,7 @@
  * Handles storing and retrieving configuration from localStorage
  */
 export class AgentConfig {
-  private baseUrl: string = "https://c0f2-89-103-65-193.ngrok-free.app"; // Updated to new ngrok URL
+  private baseUrl: string = "https://your-backend-url.com"; // Default placeholder
   private isLocalDevelopment: boolean = false;
 
   constructor() {
@@ -27,7 +27,7 @@ export class AgentConfig {
         console.error("Failed to parse saved agent configuration:", error);
       }
     } else {
-      // Save the default ngrok configuration
+      // Save the default configuration
       this.saveConfig();
     }
   }
@@ -58,7 +58,7 @@ export class AgentConfig {
    * Check if the agent service is properly configured
    */
   public isConfigured(): boolean {
-    return this.baseUrl !== "" && this.baseUrl !== undefined;
+    return this.baseUrl !== "" && this.baseUrl !== undefined && this.baseUrl !== "https://your-backend-url.com";
   }
 
   /**
@@ -73,14 +73,14 @@ export class AgentConfig {
    */
   public clearConfig(): void {
     localStorage.removeItem("agent_config");
-    this.baseUrl = "https://c0f2-89-103-65-193.ngrok-free.app";
+    this.baseUrl = "https://your-backend-url.com";
   }
 
   /**
-   * Reset connection to use the latest ngrok URL
+   * Reset connection to use the default URL
    */
   public resetConnection(): void {
-    this.baseUrl = "https://c0f2-89-103-65-193.ngrok-free.app";
+    this.baseUrl = "https://your-backend-url.com";
     this.saveConfig();
   }
 }

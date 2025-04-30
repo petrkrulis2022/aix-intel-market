@@ -1,82 +1,44 @@
 
+/**
+ * Connection management for the Filecoin Recall AIX Agent
+ * Handles testing connectivity to the agent backend
+ */
 import AgentConfig from './AgentConfig';
 
 export class AgentConnection {
   /**
-   * Test if the backend server is reachable
-   * @param timeoutMs Maximum time to wait for response in milliseconds
-   * @returns Promise that resolves to boolean indicating connection status
+   * Test connectivity to the backend server
+   * @param timeoutMs Timeout in milliseconds
+   * @returns Promise resolving to true if connection is successful, false otherwise
    */
   public async testConnection(timeoutMs: number = 5000): Promise<boolean> {
+    if (!AgentConfig.isConfigured()) {
+      return false;
+    }
+
     try {
       const baseUrl = AgentConfig.getBaseUrl();
+      console.log(`Testing connection to ${baseUrl}/health`);
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       
-      console.log(`Testing connection to ${baseUrl}/api/health`);
-      
-      // Try the health endpoint first
-      try {
-        const response = await fetch(`${baseUrl}/api/health`, {
-          method: "GET",
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          mode: 'cors',
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          console.log("Health check response OK");
-          return true;
-        }
-      } catch (error) {
-        console.warn("Health check failed, trying alternative endpoint:", error);
-      }
-      
-      // If health endpoint fails, try the agent endpoint
-      return this.testAlternativeEndpoint(`${baseUrl}/api/agent`, timeoutMs);
-    } catch (error) {
-      console.error('Backend connection test failed:', error);
-      return this.testAlternativeEndpoint(AgentConfig.getBaseUrl(), timeoutMs);
-    }
-  }
-  
-  /**
-   * Test an alternative endpoint if the main health check fails
-   * Some ngrok tunnels might respond with HTML on the health endpoint
-   */
-  private async testAlternativeEndpoint(baseUrl: string, timeoutMs: number): Promise<boolean> {
-    try {
-      console.log(`Testing alternative endpoint at ${baseUrl}`);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-      
-      // Try the root endpoint
-      const response = await fetch(baseUrl, {
+      const response = await fetch(`${baseUrl}/health`, {
         method: "GET",
         signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        mode: 'cors',
       });
       
       clearTimeout(timeoutId);
       
-      // For ngrok tunnels, even getting a response might indicate it's working
-      if (response.status !== 0) {
-        console.log("Root endpoint connection verified");
+      if (response.ok) {
+        console.log("Health check response OK");
         return true;
       }
       
+      console.warn("Health check response not OK:", response.status);
       return false;
     } catch (error) {
-      console.error('Alternative endpoint test failed:', error);
+      console.error("Connection test failed:", error);
       return false;
     }
   }

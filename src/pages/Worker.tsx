@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -70,7 +71,7 @@ const Worker = () => {
   
   const testBackendConnection = async () => {
     try {
-      await fetch(`${AgentService.getBaseUrl()}/api/health`, {
+      await fetch(`${AgentService.getBaseUrl()}/health`, {
         method: "GET",
         signal: AbortSignal.timeout(5000), // 5 second timeout
       });

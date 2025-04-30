@@ -50,7 +50,7 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
         setConnectionStatus("success");
         
         try {
-          const testResponse = await fetch(`${url}/api/health`, { method: 'GET' });
+          const testResponse = await fetch(`${url}/health`, { method: 'GET' });
           if (testResponse.ok) {
             console.log("Health endpoint available");
           } else {
