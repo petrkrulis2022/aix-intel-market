@@ -129,7 +129,7 @@ const AgentConfigDialog: React.FC<AgentConfigDialogProps> = ({
   };
 
   const handleResetConnection = async () => {
-    const defaultUrl = "https://c0f2-89-103-65-193.ngrok-free.app"; 
+    const defaultUrl = "https://fa9e-89-103-65-193.ngrok-free.app"; 
     setBaseUrl(defaultUrl);
     
     try {

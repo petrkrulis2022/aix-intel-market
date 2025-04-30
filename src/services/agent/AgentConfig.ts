@@ -4,7 +4,7 @@
  * Handles storing and retrieving configuration from localStorage
  */
 export class AgentConfig {
-  private baseUrl: string = "https://your-backend-url.com"; // Default placeholder
+  private baseUrl: string = "https://fa9e-89-103-65-193.ngrok-free.app"; // Updated default URL
   private isLocalDevelopment: boolean = false;
 
   constructor() {
@@ -73,14 +73,14 @@ export class AgentConfig {
    */
   public clearConfig(): void {
     localStorage.removeItem("agent_config");
-    this.baseUrl = "https://your-backend-url.com";
+    this.baseUrl = "https://fa9e-89-103-65-193.ngrok-free.app";
   }
 
   /**
    * Reset connection to use the default URL
    */
   public resetConnection(): void {
-    this.baseUrl = "https://your-backend-url.com";
+    this.baseUrl = "https://fa9e-89-103-65-193.ngrok-free.app";
     this.saveConfig();
   }
 }
