@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, ExternalLink, Settings } from "lucide-react";
+import { AlertCircle, ExternalLink, Settings, SendIcon } from "lucide-react";
 import AgentService from "@/services/AgentService";
 
 interface TaskCreationDialogProps {
@@ -34,6 +35,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
   ]);
   const [messageInput, setMessageInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -60,12 +62,30 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
     }
   }, [open]);
   
+  // Scroll to bottom of messages whenever chat updates
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+  
   const checkBackendStatus = async () => {
     try {
       const isConnected = await AgentService.testBackendConnection(5000);
       
       if (isConnected) {
         setBackendStatus("online");
+        
+        // Send a welcome message to initialize the connection
+        try {
+          const response = await AgentService.sendMessage("Hello Eliza, initialize session");
+          if (response && response !== chatMessages[0]?.content) {
+            setChatMessages([{ 
+              role: "agent", 
+              content: response || "Hello! I'm Eliza, your AI assistant. How can I help you with your task today?" 
+            }]);
+          }
+        } catch (error) {
+          console.error("Failed to get initial response:", error);
+        }
         return;
       }
       
@@ -127,6 +147,12 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
     try {
       console.log("Creating task with:", {title, description, type: taskType});
       
+      // Add a system message indicating task creation
+      setChatMessages(prev => [
+        ...prev,
+        { role: "system", content: `Creating task: "${title}"...` }
+      ]);
+      
       const task = await AgentService.createTask({
         title,
         description,
@@ -134,6 +160,11 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       });
       
       console.log("Task created:", task);
+      
+      setChatMessages(prev => [
+        ...prev,
+        { role: "system", content: `✓ Task "${title}" created successfully with ID: ${task.taskId}` }
+      ]);
       
       toast({
         title: "Task Created",
@@ -143,14 +174,6 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
       if (onTaskCreated) {
         onTaskCreated(task.taskId);
       }
-      
-      setTitle("");
-      setDescription("");
-      setTaskType("analysis");
-      setChatMessages([
-        { role: "agent", content: "Hello! I'm Eliza, your AI assistant. How can I help you with your task today?" }
-      ]);
-      onOpenChange(false);
     } catch (error) {
       console.error("Task creation failed:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -214,8 +237,19 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
     setIsSending(true);
     
     try {
+      // Automatically extract title from first message if not set
+      if (!title && chatMessages.length <= 1) {
+        // Generate a title from the message (use first 5-7 words)
+        const words = userMessage.split(' ');
+        const generatedTitle = words.slice(0, words.length > 7 ? 5 : words.length).join(' ');
+        setTitle(generatedTitle + (words.length > 7 ? '...' : ''));
+      }
+      
       const response = await AgentService.sendMessage(userMessage);
       setChatMessages(prev => [...prev, { role: "agent", content: response }]);
+      
+      // If we got a good response, update the backend status to ensure it's marked as online
+      setBackendStatus("online");
     } catch (error) {
       console.error("Error sending message to agent:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -328,6 +362,14 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
                 ⟳ Checking connection...
               </div>
             )}
+            
+            <Button 
+              onClick={handleCreateTask} 
+              disabled={isCreating || backendStatus !== "online" || !title.trim()}
+              className="w-full mt-4"
+            >
+              {isCreating ? "Creating..." : "Create Task"}
+            </Button>
           </div>
           
           <div className="flex flex-col h-full">
@@ -363,6 +405,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
             
             <div className="flex items-center gap-2">
@@ -376,12 +419,14 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
                     handleSendMessage();
                   }
                 }}
+                disabled={isSending}
               />
               <Button 
                 onClick={handleSendMessage} 
                 disabled={isSending || !messageInput.trim() || backendStatus !== "online"}
+                size="icon"
               >
-                Send
+                <SendIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -389,13 +434,7 @@ const TaskCreationDialog: React.FC<TaskCreationDialogProps> = ({
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleCreateTask} 
-            disabled={isCreating || backendStatus !== "online"}
-          >
-            {isCreating ? "Creating..." : "Create Task"}
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ interface WorkerDashboardProps {
 const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplace }) => {
   const [showTaskCreation, setShowTaskCreation] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
+  const [tasks, setTasks] = useState<Array<{taskId: string, title: string, status: string}>>([]);
+  const [loading, setLoading] = useState(false);
   
   const handleQuickAddToMarketplace = () => {
     if (!onAddTaskToMarketplace) return;
@@ -38,6 +40,42 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
     
     onAddTaskToMarketplace(taskData, aixValuation);
   };
+  
+  const handleTaskCreated = (taskId: string) => {
+    // Refresh the task list after a new task is created
+    fetchTasks();
+    
+    toast({
+      title: "Task Created",
+      description: `Task ID: ${taskId} was created successfully.`,
+    });
+  };
+  
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const AgentService = (await import('@/services/AgentService')).default;
+      
+      if (AgentService.isConfigured()) {
+        try {
+          const taskList = await AgentService.getTasks();
+          setTasks(taskList || []);
+        } catch (error) {
+          console.error("Failed to fetch tasks:", error);
+          // Silent fail, we don't want to show error toasts on initial load
+        }
+      }
+    } catch (error) {
+      console.error("Error loading agent service:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Load tasks when the dashboard mounts
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -96,17 +134,44 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center p-12 text-center">
-                <Brain className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-1">No Tasks Created Yet</h3>
-                <p className="text-sm text-muted-foreground max-w-md mb-4">
-                  Start a conversation with your AI agent to create and process tasks.
-                </p>
-                <Button onClick={() => setShowTaskCreation(true)}>
-                  <MessageSquarePlus className="mr-2 h-4 w-4" />
-                  Ask Agent to Perform Action
-                </Button>
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center p-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : tasks.length > 0 ? (
+                <div className="space-y-4">
+                  {tasks.map(task => (
+                    <div 
+                      key={task.taskId} 
+                      className="p-4 border rounded-md flex justify-between items-center"
+                    >
+                      <div>
+                        <h3 className="font-medium">{task.title}</h3>
+                        <p className="text-sm text-muted-foreground">Task ID: {task.taskId}</p>
+                      </div>
+                      <span className={`text-sm px-2 py-1 rounded-full ${
+                        task.status === "completed" ? "bg-green-100 text-green-800" : 
+                        task.status === "in_progress" ? "bg-blue-100 text-blue-800" :
+                        "bg-gray-100 text-gray-800"
+                      }`}>
+                        {task.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <Brain className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-1">No Tasks Created Yet</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mb-4">
+                    Start a conversation with your AI agent to create and process tasks.
+                  </p>
+                  <Button onClick={() => setShowTaskCreation(true)}>
+                    <MessageSquarePlus className="mr-2 h-4 w-4" />
+                    Ask Agent to Perform Action
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -135,6 +200,7 @@ const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onAddTaskToMarketplac
       <TaskCreationDialog
         open={showTaskCreation}
         onOpenChange={setShowTaskCreation}
+        onTaskCreated={handleTaskCreated}
       />
     </div>
   );
