@@ -4,7 +4,7 @@
  * Handles storing and retrieving configuration from localStorage
  */
 export class AgentConfig {
-  private baseUrl: string = "https://54c4-89-103-65-193.ngrok-free.app"; // Updated ngrok URL
+  private baseUrl: string = "https://bff3-89-103-65-193.ngrok-free.app"; // Updated ngrok URL
   private isLocalDevelopment: boolean = false;
 
   constructor() {
@@ -80,7 +80,7 @@ export class AgentConfig {
    * Reset connection to use the default URL
    */
   public resetConnection(): void {
-    this.baseUrl = "https://54c4-89-103-65-193.ngrok-free.app";
+    this.baseUrl = "https://bff3-89-103-65-193.ngrok-free.app";
     this.saveConfig();
   }
 }
