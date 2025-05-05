@@ -4,6 +4,19 @@ import { toast } from "@/components/ui/use-toast";
 
 type UserRole = "worker" | "validator" | "buyer" | null;
 
+// Flare Coston2 Network configuration
+const FLARE_COSTON2_CONFIG = {
+  chainId: "0x72", // 114 in hex
+  chainName: "Flare Testnet Coston2",
+  nativeCurrency: {
+    name: "Flare",
+    symbol: "FLR",
+    decimals: 18
+  },
+  rpcUrls: ["https://coston2-api.flare.network/ext/C/rpc"],
+  blockExplorerUrls: ["https://coston2.testnet.flare-scan.com/"]
+};
+
 interface WalletContextType {
   account: string | null;
   connectWallet: () => Promise<void>;
@@ -11,6 +24,8 @@ interface WalletContextType {
   userRole: UserRole;
   setUserRole: (role: UserRole) => void;
   isConnecting: boolean;
+  switchToFlareNetwork: () => Promise<boolean>;
+  isFlareNetwork: boolean;
 }
 
 // Create context with a default undefined value
@@ -20,6 +35,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [account, setAccount] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isFlareNetwork, setIsFlareNetwork] = useState(false);
 
   // Check if MetaMask is installed
   const isMetaMaskInstalled = () => {
@@ -47,6 +63,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           title: "Wallet Connected",
           description: `Connected to ${shortenAddress(accounts[0])}`,
         });
+        
+        // Check if already on Flare network
+        await checkNetwork();
       }
     } catch (error: any) {
       console.error("Error connecting to MetaMask:", error);
@@ -64,10 +83,97 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const disconnectWallet = () => {
     setAccount(null);
     setUserRole(null);
+    setIsFlareNetwork(false);
     toast({
       title: "Wallet Disconnected",
       description: "Your wallet has been disconnected",
     });
+  };
+
+  // Check if connected to Flare Coston2 network
+  const checkNetwork = async () => {
+    if (!isMetaMaskInstalled() || !account) return false;
+    
+    try {
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      const flareChainId = FLARE_COSTON2_CONFIG.chainId; // Hex value of 114
+      
+      const isFlare = chainId === flareChainId;
+      setIsFlareNetwork(isFlare);
+      
+      return isFlare;
+    } catch (error) {
+      console.error("Error checking network:", error);
+      return false;
+    }
+  };
+
+  // Switch to Flare Coston2 network
+  const switchToFlareNetwork = async () => {
+    if (!isMetaMaskInstalled() || !account) return false;
+    
+    try {
+      // Check if already on Flare network
+      const isOnFlare = await checkNetwork();
+      if (isOnFlare) return true;
+      
+      // Try to switch to the Flare network
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: FLARE_COSTON2_CONFIG.chainId }],
+        });
+        
+        // Verify the switch was successful
+        const success = await checkNetwork();
+        if (success) {
+          toast({
+            title: "Network Changed",
+            description: "Successfully connected to Flare Testnet Coston2",
+          });
+        }
+        return success;
+      } catch (switchError: any) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [FLARE_COSTON2_CONFIG],
+            });
+            
+            // Verify the addition and switch was successful
+            const success = await checkNetwork();
+            if (success) {
+              toast({
+                title: "Network Added",
+                description: "Successfully added and connected to Flare Testnet Coston2",
+              });
+            }
+            return success;
+          } catch (addError) {
+            console.error("Error adding Flare network:", addError);
+            toast({
+              title: "Network Addition Failed",
+              description: "Failed to add Flare Testnet Coston2 to your wallet",
+              variant: "destructive",
+            });
+            return false;
+          }
+        } else {
+          console.error("Error switching to Flare network:", switchError);
+          toast({
+            title: "Network Switch Failed",
+            description: "Failed to switch to Flare Testnet Coston2",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error("Error in switchToFlareNetwork:", error);
+      return false;
+    }
   };
 
   // Listen for account changes
@@ -84,6 +190,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             title: "Account Changed",
             description: `Switched to ${shortenAddress(accounts[0])}`,
           });
+          
+          // Check network after account change
+          checkNetwork();
         }
       };
 
@@ -94,6 +203,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         .then((accounts: string[]) => {
           if (accounts.length > 0) {
             setAccount(accounts[0]);
+            // Check network when accounts are detected
+            checkNetwork();
           }
         })
         .catch((err: Error) => console.error("Error checking accounts:", err));
@@ -109,7 +220,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   // Handle chain changes
   useEffect(() => {
     if (isMetaMaskInstalled()) {
-      const handleChainChanged = () => {
+      const handleChainChanged = (chainId: string) => {
+        const flareChainId = FLARE_COSTON2_CONFIG.chainId;
+        const isFlare = chainId === flareChainId;
+        setIsFlareNetwork(isFlare);
+        
         // Reload the page on chain change as recommended by MetaMask
         window.location.reload();
       };
@@ -142,6 +257,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     userRole,
     setUserRole: updateUserRole,
     isConnecting,
+    switchToFlareNetwork,
+    isFlareNetwork
   };
 
   return (

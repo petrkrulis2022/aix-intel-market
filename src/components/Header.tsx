@@ -2,14 +2,23 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
-import { LogOut, Wallet } from "lucide-react";
+import { LogOut, Wallet, Network } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "./ui/badge";
 
 const Header = () => {
-  const { account, connectWallet, disconnectWallet, isConnecting } = useWallet();
+  const { account, connectWallet, disconnectWallet, isConnecting, switchToFlareNetwork, isFlareNetwork } = useWallet();
 
   const shortenAddress = (address: string) => {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  const handleSwitchNetwork = async () => {
+    if (account) {
+      await switchToFlareNetwork();
+    } else {
+      await connectWallet();
+    }
   };
 
   return (
@@ -20,9 +29,30 @@ const Header = () => {
             <span className="text-white font-bold">A</span>
           </div>
           <h1 className="text-xl font-bold gradient-text">AIX Intel Market</h1>
+          
+          {account && (
+            <Badge 
+              variant={isFlareNetwork ? "default" : "outline"}
+              className={`ml-2 ${isFlareNetwork ? "bg-green-600" : ""}`}
+            >
+              {isFlareNetwork ? "Flare Coston2" : "Wrong Network"}
+            </Badge>
+          )}
         </div>
 
-        <div>
+        <div className="flex items-center space-x-2">
+          {!isFlareNetwork && account && (
+            <Button 
+              onClick={handleSwitchNetwork} 
+              variant="outline" 
+              size="sm"
+              className="mr-2 border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
+            >
+              <Network className="w-4 h-4 mr-2" />
+              Switch to Flare
+            </Button>
+          )}
+          
           {!account ? (
             <Button 
               onClick={connectWallet} 

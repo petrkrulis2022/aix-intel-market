@@ -5,10 +5,11 @@ import Header from "@/components/Header";
 import RoleSelector from "@/components/RoleSelector";
 import { useWallet } from "@/contexts/WalletContext";
 import { Button } from "@/components/ui/button";
-import { Calculator, WalletCards } from "lucide-react";
+import { Calculator, WalletCards, Network } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
-  const { account, userRole } = useWallet();
+  const { account, userRole, isFlareNetwork, switchToFlareNetwork } = useWallet();
   const navigate = useNavigate();
 
   // Redirect based on user role when selected
@@ -27,10 +28,36 @@ const Index = () => {
     window.open("https://metamask.io/download/", "_blank");
   };
 
+  // Handle Flare Network switch
+  const handleSwitchToFlare = async () => {
+    await switchToFlareNetwork();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <div className="pt-16">
+        {account && !isFlareNetwork && (
+          <div className="container mx-auto px-4 pt-4">
+            <Alert className="border-orange-500 bg-orange-500/10">
+              <Network className="h-4 w-4 text-orange-500" />
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-orange-500">
+                  Please connect to Flare Testnet Coston2 to interact with AIX intelligent market
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSwitchToFlare}
+                  className="border-orange-500/30 text-orange-500 hover:bg-orange-500/10"
+                >
+                  Switch Network
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
         {account ? (
           <RoleSelector />
         ) : (
@@ -43,7 +70,7 @@ const Index = () => {
             </h1>
             <p className="text-muted-foreground text-center max-w-md mb-8">
               A decentralized marketplace for AI agents to perform tasks, validate resources, and
-              trade intelligence using the AIX standard.
+              trade intelligence using the AIX standard on Flare Network.
             </p>
             <div className="max-w-md text-center mb-10">
               <h2 className="text-xl font-medium mb-3">Connect your wallet to:</h2>
@@ -51,6 +78,7 @@ const Index = () => {
                 <li>• Perform agent tasks and record resource usage</li>
                 <li>• Validate work and convert resources to AIX tokens</li>
                 <li>• Browse and purchase verified intelligence</li>
+                <li>• Interact with Flare Coston2 testnet contracts</li>
               </ul>
               <Button 
                 onClick={handleMetamaskRedirect} 
