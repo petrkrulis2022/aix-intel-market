@@ -11,7 +11,7 @@ import { toast } from "@/components/ui/use-toast";
 import RecallConfigForm from "@/components/RecallConfigForm";
 
 const Validator = () => {
-  const { account, userRole } = useWallet();
+  const { account, userRole, setUserRole } = useWallet();
   const navigate = useNavigate();
   const [showRecallSetup, setShowRecallSetup] = useState(false);
 
@@ -41,6 +41,12 @@ const Validator = () => {
       description: "Recall Network connection configured successfully.",
     });
   };
+  
+  const handleChangeRole = () => {
+    // Clear the user role and navigate to the homepage
+    setUserRole(null);
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,7 +57,7 @@ const Validator = () => {
             <div className="container mx-auto p-4">
               <Button 
                 variant="ghost" 
-                onClick={() => navigate("/")}
+                onClick={handleChangeRole}
                 className="mb-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" /> Change Role

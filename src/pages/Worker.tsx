@@ -25,7 +25,7 @@ const Worker = () => {
     );
   }
   
-  const { account } = walletContext;
+  const { account, setUserRole } = walletContext;
   const [showAgentConfig, setShowAgentConfig] = useState(false);
   const [isConfigured, setIsConfigured] = useState(false);
   const [isBackendOnline, setIsBackendOnline] = useState(false);
@@ -142,6 +142,11 @@ const Worker = () => {
     }
   };
 
+  const handleChangeRole = () => {
+    setUserRole(null);
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -151,14 +156,14 @@ const Worker = () => {
             <div className="container mx-auto p-4 flex justify-between items-center">
               <Button 
                 variant="ghost" 
-                onClick={() => navigate("/")}
+                onClick={handleChangeRole}
                 className="mb-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" /> Change Role
               </Button>
               
               <div className="flex gap-2">
-                <Button
+                <Button 
                   variant="outline"
                   onClick={() => {
                     const demoResourceData = {
