@@ -1,4 +1,6 @@
 
+import FileStorageService from "./FileStorageService";
+
 /**
  * JsonlConverter - Utility for converting JSONL files to JSON format
  * and estimating resource usage from Chain of Thought logs
@@ -108,6 +110,38 @@ export class JsonlConverter {
       return this.convertJsonlToJson(jsonlContent);
     } catch (error) {
       console.error('Error converting JSONL file:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Convert a JSONL file by filename to JSON and save it
+   * @param filename - The JSONL filename to convert
+   * @returns The converted JSON data
+   */
+  public static async convertFileByName(filename: string): Promise<any[]> {
+    try {
+      // Get JSONL content from storage
+      const jsonlContent = FileStorageService.getFileContent(filename);
+      
+      if (!jsonlContent) {
+        throw new Error(`File ${filename} not found in storage`);
+      }
+      
+      // Convert to JSON
+      const jsonData = this.convertJsonlToJson(jsonlContent);
+      
+      // Save the JSON file
+      const jsonFilename = filename.replace('.jsonl', '.json');
+      await FileStorageService.saveFile(
+        jsonFilename, 
+        JSON.stringify(jsonData, null, 2), 
+        "json"
+      );
+      
+      return jsonData;
+    } catch (error) {
+      console.error('Error converting JSONL file by name:', error);
       throw error;
     }
   }

@@ -3,14 +3,19 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { FileJson, Download, Upload } from "lucide-react";
+import { FileJson, Download, Upload, Folder } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JsonlConverter from "@/services/recall/JsonlConverter";
+import FileStorageService from "@/services/recall/FileStorageService";
+import FileBrowser from "./FileBrowser";
 
 const JsonlConverterTool: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [convertedData, setConvertedData] = useState<any[] | null>(null);
   const [isDownloadable, setIsDownloadable] = useState(false);
+  const [selectedJsonlFile, setSelectedJsonlFile] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("upload");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -29,11 +34,49 @@ const JsonlConverterTool: React.FC = () => {
       setFile(selectedFile);
       setConvertedData(null);
       setIsDownloadable(false);
+
+      // Save the file to storage
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        if (event.target?.result) {
+          try {
+            await FileStorageService.saveFile(
+              selectedFile.name,
+              event.target.result as string,
+              "jsonl"
+            );
+            
+            toast({
+              title: "File Saved",
+              description: `${selectedFile.name} has been saved to storage`,
+            });
+          } catch (error) {
+            toast({
+              title: "Save Failed",
+              description: `Failed to save ${selectedFile.name}`,
+              variant: "destructive",
+            });
+          }
+        }
+      };
+      reader.readAsText(selectedFile);
     }
   };
 
+  const handleSelectJsonlFile = (filename: string) => {
+    setSelectedJsonlFile(filename);
+    setFile(null); // Clear the uploaded file
+    setConvertedData(null);
+    setIsDownloadable(false);
+    
+    toast({
+      title: "File Selected",
+      description: `Selected ${filename} for conversion`,
+    });
+  };
+
   const handleConvert = async () => {
-    if (!file) {
+    if (!file && !selectedJsonlFile) {
       toast({
         title: "No File Selected",
         description: "Please select a JSONL file to convert",
@@ -45,7 +88,24 @@ const JsonlConverterTool: React.FC = () => {
     setIsConverting(true);
     
     try {
-      const jsonData = await JsonlConverter.convertFile(file);
+      let jsonData;
+      
+      if (file) {
+        // Convert uploaded file
+        jsonData = await JsonlConverter.convertFile(file);
+        
+        // Save the JSON result
+        const jsonFilename = file.name.replace('.jsonl', '.json');
+        await FileStorageService.saveFile(
+          jsonFilename,
+          JSON.stringify(jsonData, null, 2),
+          "json"
+        );
+      } else if (selectedJsonlFile) {
+        // Convert stored file
+        jsonData = await JsonlConverter.convertFileByName(selectedJsonlFile);
+      }
+      
       setConvertedData(jsonData);
       setIsDownloadable(true);
       
@@ -79,7 +139,9 @@ const JsonlConverterTool: React.FC = () => {
       // Create download link and click it
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
-      downloadLink.download = file ? file.name.replace('.jsonl', '.json') : 'converted.json';
+      downloadLink.download = file ? 
+        file.name.replace('.jsonl', '.json') : 
+        selectedJsonlFile?.replace('.jsonl', '.json') || 'converted.json';
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -112,36 +174,55 @@ const JsonlConverterTool: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="border-2 border-dashed border-border rounded-md p-6 text-center">
-          <input
-            type="file"
-            id="jsonl-file"
-            accept=".jsonl"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <label 
-            htmlFor="jsonl-file" 
-            className="flex flex-col items-center justify-center cursor-pointer"
-          >
-            <Upload className="w-8 h-8 mb-2 text-primary" />
-            <span className="text-sm font-medium">
-              {file ? file.name : "Select JSONL file"}
-            </span>
-            <span className="text-xs text-muted-foreground mt-1">
-              Click to browse files
-            </span>
-          </label>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upload">Upload File</TabsTrigger>
+            <TabsTrigger value="browse">Browse Files</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="upload" className="pt-4">
+            <div className="border-2 border-dashed border-border rounded-md p-6 text-center">
+              <input
+                type="file"
+                id="jsonl-file"
+                accept=".jsonl"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <label 
+                htmlFor="jsonl-file" 
+                className="flex flex-col items-center justify-center cursor-pointer"
+              >
+                <Upload className="w-8 h-8 mb-2 text-primary" />
+                <span className="text-sm font-medium">
+                  {file ? file.name : "Select JSONL file"}
+                </span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Click to browse files
+                </span>
+              </label>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="browse" className="pt-4">
+            <FileBrowser 
+              filetype="jsonl"
+              onSelectFile={handleSelectJsonlFile}
+              className="min-h-[180px]"
+            />
+          </TabsContent>
+        </Tabs>
 
-        {file && (
-          <Button 
-            onClick={handleConvert}
-            disabled={isConverting}
-            className="w-full"
-          >
-            {isConverting ? "Converting..." : "Convert to JSON with Resource Estimates"}
-          </Button>
+        {(file || selectedJsonlFile) && (
+          <div className="pt-2">
+            <Button 
+              onClick={handleConvert}
+              disabled={isConverting}
+              className="w-full"
+            >
+              {isConverting ? "Converting..." : "Convert to JSON with Resource Estimates"}
+            </Button>
+          </div>
         )}
 
         {convertedData && (

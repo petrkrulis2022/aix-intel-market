@@ -1,8 +1,82 @@
 
-import React from "react";
+import React, { useState } from "react";
 import JsonlConverterTool from "@/components/recall/JsonlConverterTool";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import FileBrowser from "@/components/recall/FileBrowser";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download, FileJson } from "lucide-react";
+import FileStorageService from "@/services/recall/FileStorageService";
+import { toast } from "@/components/ui/use-toast";
 
 const Converter = () => {
+  const [selectedJsonFile, setSelectedJsonFile] = useState<string | null>(null);
+  const [jsonContent, setJsonContent] = useState<any[] | null>(null);
+
+  const handleSelectJsonFile = (filename: string) => {
+    setSelectedJsonFile(filename);
+    const content = FileStorageService.getFileContent(filename);
+    
+    if (content) {
+      try {
+        setJsonContent(JSON.parse(content));
+        toast({
+          title: "File Loaded",
+          description: `Loaded ${filename} successfully`,
+        });
+      } catch (error) {
+        toast({
+          title: "Parse Error",
+          description: "Failed to parse JSON content",
+          variant: "destructive",
+        });
+        setJsonContent(null);
+      }
+    } else {
+      toast({
+        title: "Load Error",
+        description: "File content not found",
+        variant: "destructive",
+      });
+      setJsonContent(null);
+    }
+  };
+
+  const handleDownloadJson = () => {
+    if (!selectedJsonFile || !jsonContent) return;
+    
+    try {
+      // Create JSON content
+      const jsonContentStr = JSON.stringify(jsonContent, null, 2);
+      
+      // Create blob and download link
+      const blob = new Blob([jsonContentStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link and click it
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = selectedJsonFile;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      // Clean up URL
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: "Your JSON file download has started",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download JSON file",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-20 max-w-4xl">
       <div className="space-y-6">
@@ -13,7 +87,62 @@ const Converter = () => {
           </p>
         </div>
         
-        <JsonlConverterTool />
+        <Tabs defaultValue="convert" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="convert">Convert JSONL Files</TabsTrigger>
+            <TabsTrigger value="view">View JSON Files</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="convert" className="pt-4">
+            <JsonlConverterTool />
+          </TabsContent>
+          
+          <TabsContent value="view" className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-medium mb-2">Available JSON Files</h3>
+                <FileBrowser 
+                  filetype="json"
+                  onSelectFile={handleSelectJsonFile}
+                  className="min-h-[300px]"
+                />
+              </div>
+              
+              <div>
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-md flex items-center">
+                      <FileJson className="w-4 h-4 mr-2 text-primary" />
+                      {selectedJsonFile || "Select a JSON file"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {jsonContent ? (
+                      <>
+                        <div className="max-h-80 overflow-y-auto rounded-md bg-muted p-4 mb-4">
+                          <pre className="text-xs whitespace-pre-wrap">
+                            {JSON.stringify(jsonContent, null, 2)}
+                          </pre>
+                        </div>
+                        <Button 
+                          onClick={handleDownloadJson}
+                          className="w-full flex items-center justify-center"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download JSON File
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="text-center p-8 text-muted-foreground">
+                        Select a JSON file to view its contents
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
         
         <div className="bg-muted/30 rounded-lg p-4 border border-border/50">
           <h2 className="text-lg font-medium mb-2">About this tool</h2>
