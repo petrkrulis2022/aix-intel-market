@@ -2,10 +2,11 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
-import { LogOut, Wallet } from "lucide-react";
+import { LogOut, Wallet, FileJson } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "./ui/badge";
 import NetworkSwitcher from "./NetworkSwitcher";
+import { Link } from "react-router-dom";
 
 const Header = () => {
   const { account, connectWallet, disconnectWallet, isConnecting, isFlareNetwork, isRecallNetwork } = useWallet();
@@ -50,7 +51,30 @@ const Header = () => {
 
         <div className="flex items-center space-x-3">
           {account && (
-            <NetworkSwitcher />
+            <>
+              <NetworkSwitcher />
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-primary/30 flex items-center gap-2"
+                      asChild
+                    >
+                      <Link to="/converter">
+                        <FileJson className="h-4 w-4" />
+                        <span>JSONL Converter</span>
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Convert Recall JSONL files to JSON with resource estimates</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
           )}
           
           {!account ? (

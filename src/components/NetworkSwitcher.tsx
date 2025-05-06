@@ -10,6 +10,7 @@ import {
 import { Network } from "lucide-react";
 import { useWallet } from "@/contexts/WalletContext";
 import { Badge } from "./ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NetworkSwitcherProps {
   className?: string;
@@ -45,35 +46,44 @@ const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({ className }) => {
 
   return (
     <div className={className}>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="border-primary/30 flex items-center gap-2"
-          >
-            <Network className="h-4 w-4" />
-            <span>Networks</span>
-            {getNetworkBadge()}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem 
-            className={`flex items-center justify-between ${isFlareNetwork ? 'bg-muted/50' : ''}`} 
-            onClick={() => handleSwitchNetwork('flare')}
-          >
-            <span>Flare Coston2</span>
-            {isFlareNetwork && <Badge className="bg-green-600 ml-2">Active</Badge>}
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            className={`flex items-center justify-between ${isRecallNetwork ? 'bg-muted/50' : ''}`}
-            onClick={() => handleSwitchNetwork('recall')}
-          >
-            <span>Recall Testnet</span>
-            {isRecallNetwork && <Badge className="bg-purple-600 ml-2">Active</Badge>}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-primary/30 flex items-center gap-2"
+                >
+                  <Network className="h-4 w-4" />
+                  <span>Networks</span>
+                  {getNetworkBadge()}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  className={`flex items-center justify-between ${isFlareNetwork ? 'bg-muted/50' : ''}`} 
+                  onClick={() => handleSwitchNetwork('flare')}
+                >
+                  <span>Flare Coston2</span>
+                  {isFlareNetwork && <Badge className="bg-green-600 ml-2">Active</Badge>}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className={`flex items-center justify-between ${isRecallNetwork ? 'bg-muted/50' : ''}`}
+                  onClick={() => handleSwitchNetwork('recall')}
+                >
+                  <span>Recall Testnet</span>
+                  {isRecallNetwork && <Badge className="bg-purple-600 ml-2">Active</Badge>}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Switch between Flare (for AIX validation) and Recall (for Chain of Thought logs)</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 };

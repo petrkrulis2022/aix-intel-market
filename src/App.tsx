@@ -1,39 +1,40 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { WalletProvider } from "@/contexts/WalletContext";
+import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import "./App.css";
+
+// Import components
+import Header from "./components/Header";
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Worker from "./pages/Worker";
 import Validator from "./pages/Validator";
+import Worker from "./pages/Worker";
 import Buyer from "./pages/Buyer";
 import Calculator from "./pages/Calculator";
+import NotFound from "./pages/NotFound";
+import Converter from "./pages/Converter";
 
-const queryClient = new QueryClient();
+// Import contexts
+import { WalletProvider } from "./contexts/WalletContext";
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+function App() {
+  return (
     <WalletProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <Router>
+        <div className="min-h-screen bg-background font-sans antialiased">
+          <Header />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/worker" element={<Worker />} />
             <Route path="/validator" element={<Validator />} />
+            <Route path="/worker" element={<Worker />} />
             <Route path="/buyer" element={<Buyer />} />
             <Route path="/calculator" element={<Calculator />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/converter" element={<Converter />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+        </div>
+      </Router>
     </WalletProvider>
-  </QueryClientProvider>
-);
+  );
+}
 
 export default App;
