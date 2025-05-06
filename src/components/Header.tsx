@@ -2,23 +2,16 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/contexts/WalletContext";
-import { LogOut, Wallet, Network } from "lucide-react";
+import { LogOut, Wallet } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "./ui/badge";
+import NetworkSwitcher from "./NetworkSwitcher";
 
 const Header = () => {
-  const { account, connectWallet, disconnectWallet, isConnecting, switchToFlareNetwork, isFlareNetwork } = useWallet();
+  const { account, connectWallet, disconnectWallet, isConnecting, isFlareNetwork } = useWallet();
 
   const shortenAddress = (address: string) => {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-  };
-
-  const handleSwitchNetwork = async () => {
-    if (account) {
-      await switchToFlareNetwork();
-    } else {
-      await connectWallet();
-    }
   };
 
   return (
@@ -40,17 +33,9 @@ const Header = () => {
           )}
         </div>
 
-        <div className="flex items-center space-x-2">
-          {!isFlareNetwork && account && (
-            <Button 
-              onClick={handleSwitchNetwork} 
-              variant="outline" 
-              size="sm"
-              className="mr-2 border-orange-500/50 text-orange-500 hover:bg-orange-500/10"
-            >
-              <Network className="w-4 h-4 mr-2" />
-              Switch to Flare
-            </Button>
+        <div className="flex items-center space-x-3">
+          {account && (
+            <NetworkSwitcher />
           )}
           
           {!account ? (
