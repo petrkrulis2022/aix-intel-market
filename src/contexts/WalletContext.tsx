@@ -4,7 +4,7 @@ import { toast } from "@/components/ui/use-toast";
 
 type UserRole = "worker" | "validator" | "buyer" | null;
 
-// Flare Coston2 Network configuration
+// Network configurations
 const FLARE_COSTON2_CONFIG = {
   chainId: "0x72", // 114 in hex
   chainName: "Flare Testnet Coston2",
@@ -17,6 +17,18 @@ const FLARE_COSTON2_CONFIG = {
   blockExplorerUrls: ["https://coston2.testnet.flare-scan.com/"]
 };
 
+const RECALL_TESTNET_CONFIG = {
+  chainId: "0x13E31", // 81457 in hex
+  chainName: "Recall Testnet",
+  nativeCurrency: {
+    name: "Recall",
+    symbol: "REC",
+    decimals: 18
+  },
+  rpcUrls: ["https://testnet-rpc.recall.network"],
+  blockExplorerUrls: ["https://explorer.recall.network"]
+};
+
 interface WalletContextType {
   account: string | null;
   connectWallet: () => Promise<void>;
@@ -25,7 +37,10 @@ interface WalletContextType {
   setUserRole: (role: UserRole) => void;
   isConnecting: boolean;
   switchToFlareNetwork: () => Promise<boolean>;
+  switchToRecallNetwork: () => Promise<boolean>;
   isFlareNetwork: boolean;
+  isRecallNetwork: boolean;
+  currentNetwork: "flare" | "recall" | "unknown";
 }
 
 // Create context with a default undefined value
@@ -36,6 +51,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isFlareNetwork, setIsFlareNetwork] = useState(false);
+  const [isRecallNetwork, setIsRecallNetwork] = useState(false);
+
+  // Current network type
+  const currentNetwork = isFlareNetwork ? "flare" : isRecallNetwork ? "recall" : "unknown";
 
   // Check if MetaMask is installed
   const isMetaMaskInstalled = () => {
@@ -64,7 +83,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
           description: `Connected to ${shortenAddress(accounts[0])}`,
         });
         
-        // Check if already on Flare network
+        // Check current network
         await checkNetwork();
       }
     } catch (error: any) {
@@ -84,24 +103,29 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setAccount(null);
     setUserRole(null);
     setIsFlareNetwork(false);
+    setIsRecallNetwork(false);
     toast({
       title: "Wallet Disconnected",
       description: "Your wallet has been disconnected",
     });
   };
 
-  // Check if connected to Flare Coston2 network
+  // Check which network is connected
   const checkNetwork = async () => {
     if (!isMetaMaskInstalled() || !account) return false;
     
     try {
       const chainId = await window.ethereum.request({ method: 'eth_chainId' });
       const flareChainId = FLARE_COSTON2_CONFIG.chainId; // Hex value of 114
+      const recallChainId = RECALL_TESTNET_CONFIG.chainId; // Hex value of 81457
       
       const isFlare = chainId === flareChainId;
-      setIsFlareNetwork(isFlare);
+      const isRecall = chainId === recallChainId;
       
-      return isFlare;
+      setIsFlareNetwork(isFlare);
+      setIsRecallNetwork(isRecall);
+      
+      return isFlare || isRecall;
     } catch (error) {
       console.error("Error checking network:", error);
       return false;
@@ -114,8 +138,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       // Check if already on Flare network
-      const isOnFlare = await checkNetwork();
-      if (isOnFlare) return true;
+      if (isFlareNetwork) return true;
       
       // Try to switch to the Flare network
       try {
@@ -126,13 +149,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         
         // Verify the switch was successful
         const success = await checkNetwork();
-        if (success) {
+        if (success && isFlareNetwork) {
           toast({
             title: "Network Changed",
             description: "Successfully connected to Flare Testnet Coston2",
           });
+          return true;
         }
-        return success;
+        return false;
       } catch (switchError: any) {
         // This error code indicates that the chain has not been added to MetaMask
         if (switchError.code === 4902) {
@@ -144,13 +168,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             
             // Verify the addition and switch was successful
             const success = await checkNetwork();
-            if (success) {
+            if (success && isFlareNetwork) {
               toast({
                 title: "Network Added",
                 description: "Successfully added and connected to Flare Testnet Coston2",
               });
+              return true;
             }
-            return success;
+            return false;
           } catch (addError) {
             console.error("Error adding Flare network:", addError);
             toast({
@@ -172,6 +197,75 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error("Error in switchToFlareNetwork:", error);
+      return false;
+    }
+  };
+
+  // Switch to Recall testnet network
+  const switchToRecallNetwork = async () => {
+    if (!isMetaMaskInstalled() || !account) return false;
+    
+    try {
+      // Check if already on Recall network
+      if (isRecallNetwork) return true;
+      
+      // Try to switch to the Recall network
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: RECALL_TESTNET_CONFIG.chainId }],
+        });
+        
+        // Verify the switch was successful
+        const success = await checkNetwork();
+        if (success && isRecallNetwork) {
+          toast({
+            title: "Network Changed",
+            description: "Successfully connected to Recall Testnet",
+          });
+          return true;
+        }
+        return false;
+      } catch (switchError: any) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [RECALL_TESTNET_CONFIG],
+            });
+            
+            // Verify the addition and switch was successful
+            const success = await checkNetwork();
+            if (success && isRecallNetwork) {
+              toast({
+                title: "Network Added",
+                description: "Successfully added and connected to Recall Testnet",
+              });
+              return true;
+            }
+            return false;
+          } catch (addError) {
+            console.error("Error adding Recall network:", addError);
+            toast({
+              title: "Network Addition Failed",
+              description: "Failed to add Recall Testnet to your wallet",
+              variant: "destructive",
+            });
+            return false;
+          }
+        } else {
+          console.error("Error switching to Recall network:", switchError);
+          toast({
+            title: "Network Switch Failed",
+            description: "Failed to switch to Recall Testnet",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+    } catch (error) {
+      console.error("Error in switchToRecallNetwork:", error);
       return false;
     }
   };
@@ -222,8 +316,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     if (isMetaMaskInstalled()) {
       const handleChainChanged = (chainId: string) => {
         const flareChainId = FLARE_COSTON2_CONFIG.chainId;
+        const recallChainId = RECALL_TESTNET_CONFIG.chainId;
+        
         const isFlare = chainId === flareChainId;
+        const isRecall = chainId === recallChainId;
+        
         setIsFlareNetwork(isFlare);
+        setIsRecallNetwork(isRecall);
         
         // Reload the page on chain change as recommended by MetaMask
         window.location.reload();
@@ -258,7 +357,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     setUserRole: updateUserRole,
     isConnecting,
     switchToFlareNetwork,
-    isFlareNetwork
+    switchToRecallNetwork,
+    isFlareNetwork,
+    isRecallNetwork,
+    currentNetwork
   };
 
   return (

@@ -8,10 +8,32 @@ import { Badge } from "./ui/badge";
 import NetworkSwitcher from "./NetworkSwitcher";
 
 const Header = () => {
-  const { account, connectWallet, disconnectWallet, isConnecting, isFlareNetwork } = useWallet();
+  const { account, connectWallet, disconnectWallet, isConnecting, isFlareNetwork, isRecallNetwork } = useWallet();
 
   const shortenAddress = (address: string) => {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  const getNetworkBadge = () => {
+    if (isFlareNetwork) {
+      return (
+        <Badge variant="default" className="ml-2 bg-green-600">
+          Flare Coston2
+        </Badge>
+      );
+    } else if (isRecallNetwork) {
+      return (
+        <Badge variant="default" className="ml-2 bg-purple-600">
+          Recall Testnet
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="outline" className="ml-2">
+          Wrong Network
+        </Badge>
+      );
+    }
   };
 
   return (
@@ -23,14 +45,7 @@ const Header = () => {
           </div>
           <h1 className="text-xl font-bold gradient-text">AIX Intel Market</h1>
           
-          {account && (
-            <Badge 
-              variant={isFlareNetwork ? "default" : "outline"}
-              className={`ml-2 ${isFlareNetwork ? "bg-green-600" : ""}`}
-            >
-              {isFlareNetwork ? "Flare Coston2" : "Wrong Network"}
-            </Badge>
-          )}
+          {account && getNetworkBadge()}
         </div>
 
         <div className="flex items-center space-x-3">

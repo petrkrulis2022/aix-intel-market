@@ -16,15 +16,30 @@ interface NetworkSwitcherProps {
 }
 
 const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({ className }) => {
-  const { isFlareNetwork, switchToFlareNetwork } = useWallet();
+  const { 
+    isFlareNetwork, 
+    isRecallNetwork, 
+    switchToFlareNetwork, 
+    switchToRecallNetwork,
+    currentNetwork
+  } = useWallet();
 
   const handleSwitchNetwork = async (networkType: 'flare' | 'recall') => {
     if (networkType === 'flare') {
       await switchToFlareNetwork();
     } else {
-      // For demo purposes, we'll just show an alert for Recall network
-      // In a real implementation, this would connect to the Recall testnet
-      alert("Switching to Recall Testnet is not fully implemented yet!");
+      await switchToRecallNetwork();
+    }
+  };
+
+  // Determine the current network badge label
+  const getNetworkBadge = () => {
+    if (isFlareNetwork) {
+      return <Badge variant="default" className="ml-1 bg-green-600 h-5">Flare</Badge>;
+    } else if (isRecallNetwork) {
+      return <Badge variant="default" className="ml-1 bg-purple-600 h-5">Recall</Badge>;
+    } else {
+      return <Badge variant="outline" className="ml-1 h-5">Select</Badge>;
     }
   };
 
@@ -39,11 +54,7 @@ const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({ className }) => {
           >
             <Network className="h-4 w-4" />
             <span>Networks</span>
-            {isFlareNetwork ? (
-              <Badge variant="default" className="ml-1 bg-green-600 h-5">Flare</Badge>
-            ) : (
-              <Badge variant="outline" className="ml-1 h-5">Select</Badge>
-            )}
+            {getNetworkBadge()}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -54,8 +65,12 @@ const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({ className }) => {
             <span>Flare Coston2</span>
             {isFlareNetwork && <Badge className="bg-green-600 ml-2">Active</Badge>}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleSwitchNetwork('recall')}>
+          <DropdownMenuItem 
+            className={`flex items-center justify-between ${isRecallNetwork ? 'bg-muted/50' : ''}`}
+            onClick={() => handleSwitchNetwork('recall')}
+          >
             <span>Recall Testnet</span>
+            {isRecallNetwork && <Badge className="bg-purple-600 ml-2">Active</Badge>}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
