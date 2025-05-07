@@ -1,5 +1,6 @@
 
 import flareService from "@/services/FlareService";
+import { ethers } from "@/services/FlareService"; // Import ethers directly from the module
 import { toast } from "@/components/ui/use-toast";
 
 /**
@@ -41,7 +42,7 @@ class WalletService {
       // This will just prompt MetaMask for signing
       const tx = {
         to: "0x0000000000000000000000000000000000000000", // Zero address
-        value: flareService.ethers.parseEther("0"), // 0 FLR
+        value: ethers.parseEther("0"), // Using imported ethers directly
         data: "0x", // Empty data
         gasLimit: 21000, // Minimum gas
       };
