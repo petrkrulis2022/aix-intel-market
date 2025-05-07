@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -11,11 +12,12 @@ import { toast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Cpu, DollarSign } from "lucide-react";
+import { Check, Cpu, DollarSign, Shield } from "lucide-react";
 
 import ProviderSelector from "./ProviderSelector";
 import ComputeProvidersService, { ComputeProvider } from "@/services/providers/ComputeProvidersService";
 import PrimeIntellectService from "@/services/providers/PrimeIntellectService";
+import flareJsonApiService from "@/services/FlareJsonApiService";
 
 interface TaskValidationDialogProps {
   open: boolean;
@@ -42,6 +44,8 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
   const [providers, setProviders] = useState<ComputeProvider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [validating, setValidating] = useState(false);
+  const [flareVerified, setFlareVerified] = useState(false);
   const [costBreakdown, setCostBreakdown] = useState<{
     total: number;
     breakdown: {
@@ -124,9 +128,54 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
   const handleSelectProvider = (providerId: string) => {
     if (providerId === selectedProvider) return; // Don't reselect the same provider
     setSelectedProvider(providerId);
+    setFlareVerified(false); // Reset verification status when changing providers
   };
   
-  const handleComplete = () => {
+  const handleVerifyPrices = async () => {
+    if (!selectedProvider) {
+      toast({
+        title: "Provider Required",
+        description: "Please select a provider to verify prices.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setValidating(true);
+    try {
+      const result = await flareJsonApiService.validateProviderPricing(selectedProvider);
+      
+      if (result.isValid) {
+        setFlareVerified(true);
+        
+        toast({
+          title: "Prices Verified",
+          description: `${selectedProvider} prices have been verified using Flare's JSON API contract.`,
+        });
+        
+        if (result.requestId) {
+          console.log(`Flare JSON API Request ID: ${result.requestId}`);
+        }
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: "Provider prices could not be verified with Flare JSON API.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error verifying prices with Flare JSON API:', error);
+      toast({
+        title: "Verification Error",
+        description: "An error occurred during price verification with Flare JSON API.",
+        variant: "destructive",
+      });
+    } finally {
+      setValidating(false);
+    }
+  };
+  
+  const handleComplete = async () => {
     if (!benchmarkData || !selectedProvider || !costBreakdown) {
       toast({
         title: "Missing Information",
@@ -134,6 +183,33 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         variant: "destructive",
       });
       return;
+    }
+    
+    // If not already verified, attempt to verify with Flare JSON API
+    if (!flareVerified && selectedProvider === "primeintellect") {
+      setValidating(true);
+      try {
+        const result = await flareJsonApiService.validateProviderPricing(selectedProvider);
+        
+        if (result.isValid) {
+          setFlareVerified(true);
+          toast({
+            title: "Prices Verified",
+            description: `${selectedProvider} prices have been verified using Flare's JSON API.`,
+          });
+        } else {
+          // Continue with unverified prices if verification fails
+          toast({
+            title: "Using Unverified Prices",
+            description: "Proceeding with unverified provider prices. Some features may be limited.",
+          });
+        }
+      } catch (error) {
+        console.error('Error verifying prices with Flare JSON API:', error);
+        // Continue with unverified prices
+      } finally {
+        setValidating(false);
+      }
     }
     
     // Calculate AIX valuation based on benchmark data
@@ -144,7 +220,8 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         time_score: calculateTimeScore(benchmarkData),
         performance_score: calculatePerformanceScore(benchmarkData),
         energy_score: calculateEnergyScore(benchmarkData),
-      }
+      },
+      flare_verified: flareVerified
     };
     
     onValidationComplete({
@@ -277,44 +354,72 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
               />
               
               {selectedProvider && costBreakdown && (
-                <div className="space-y-2 pt-4 border-t">
-                  <h3 className="text-lg font-medium mb-3">Cost Estimate</h3>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium">Cost Breakdown</h4>
-                      <div className="bg-muted/40 p-3 rounded-md">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm text-muted-foreground">CPU Cost</span>
-                          <span>${costBreakdown.breakdown.cpu.toFixed(4)}</span>
-                        </div>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm text-muted-foreground">GPU Cost</span>
-                          <span>${costBreakdown.breakdown.gpu.toFixed(4)}</span>
-                        </div>
-                        {costBreakdown.breakdown.memory && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Memory Cost</span>
-                            <span>${costBreakdown.breakdown.memory.toFixed(4)}</span>
-                          </div>
-                        )}
-                      </div>
+                <>
+                  <div className="space-y-2 pt-4 border-t">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-lg font-medium">Cost Estimate</h3>
+                      
+                      {selectedProvider === "primeintellect" && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={handleVerifyPrices}
+                          disabled={validating || flareVerified}
+                          className="flex items-center gap-1"
+                        >
+                          <Shield className="h-4 w-4" />
+                          {flareVerified ? "Verified" : validating ? "Verifying..." : "Verify with Flare"}
+                        </Button>
+                      )}
                     </div>
                     
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium">Total Cost</h4>
-                      <div className="bg-primary/10 p-3 rounded-md h-full flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="flex items-center justify-center">
-                            <DollarSign className="h-4 w-4 text-primary" />
-                            <span className="text-2xl font-bold text-primary">{costBreakdown.total.toFixed(4)}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Cost Breakdown</h4>
+                        <div className="bg-muted/40 p-3 rounded-md">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-muted-foreground">CPU Cost</span>
+                            <span>${costBreakdown.breakdown.cpu.toFixed(4)}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">USD</p>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-muted-foreground">GPU Cost</span>
+                            <span>${costBreakdown.breakdown.gpu.toFixed(4)}</span>
+                          </div>
+                          {costBreakdown.breakdown.memory && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-muted-foreground">Memory Cost</span>
+                              <span>${costBreakdown.breakdown.memory.toFixed(4)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Total Cost</h4>
+                        <div className="bg-primary/10 p-3 rounded-md h-full flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="flex items-center justify-center">
+                              <DollarSign className="h-4 w-4 text-primary" />
+                              <span className="text-2xl font-bold text-primary">{costBreakdown.total.toFixed(4)}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">USD</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {flareVerified && selectedProvider === "primeintellect" && (
+                        <div className="col-span-2 mt-2">
+                          <div className="bg-green-500/10 border border-green-500/20 p-3 rounded-md flex items-center gap-2 text-green-600">
+                            <Shield className="h-4 w-4" />
+                            <span className="text-sm">
+                              Pricing verified by Flare Network JSON API contract
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </TabsContent>
@@ -326,7 +431,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           </Button>
           <Button 
             onClick={handleComplete} 
-            disabled={!selectedProvider || !costBreakdown}
+            disabled={!selectedProvider || !costBreakdown || validating}
           >
             <Check className="h-4 w-4 mr-2" />
             Complete Validation

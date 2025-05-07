@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, FileCheck, Shield, Calculator, ShoppingCart } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import FlareVerificationBadge from "@/components/validator/FlareVerificationBadge";
 
 interface ValidatedTaskCardProps {
   title: string;
@@ -16,6 +17,8 @@ interface ValidatedTaskCardProps {
   verifiedValue: string;
   onAddToMarketplace?: () => void;
   isListed?: boolean;
+  isFlareVerified?: boolean;
+  providerId?: string;
 }
 
 const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
@@ -28,6 +31,8 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
   verifiedValue,
   onAddToMarketplace,
   isListed = false,
+  isFlareVerified = false,
+  providerId
 }) => {
   const handleAddToMarketplace = () => {
     if (onAddToMarketplace) {
@@ -48,9 +53,18 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
             <CardTitle>{title}</CardTitle>
             <CardDescription>Agent: {agent}</CardDescription>
           </div>
-          <Badge variant="outline" className="bg-green-500/20 text-green-500 border-green-500/30">
-            Validated
-          </Badge>
+          <div className="flex gap-2 items-center">
+            {isFlareVerified && (
+              <FlareVerificationBadge 
+                isVerified={isFlareVerified} 
+                providerId={providerId} 
+                size="sm" 
+              />
+            )}
+            <Badge variant="outline" className="bg-green-500/20 text-green-500 border-green-500/30">
+              Validated
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
