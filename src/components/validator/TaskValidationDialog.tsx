@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -205,7 +206,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     }
   }, [selectedProvider, isFlareNetwork, switchToFlareNetwork, verificationInProgress, flareVerified]);
   
-  // Handle the provider validation with JsonAbi contract using your suggested implementation
+  // Handle the provider validation with JsonAbi contract - FIX HERE
   const handleValidateWithJsonAbi = async () => {
     if (!selectedProvider || !benchmarkData) return;
     
@@ -217,6 +218,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         toast({
           title: "Network Switch Required",
           description: "Please switch to Flare Network to validate with JsonAbi",
+          variant: "destructive",
         });
         return;
       }
@@ -254,7 +256,8 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       // Try to estimate gas, but use a fallback if it fails
       let gasLimit;
       try {
-        const gasEstimate = await contract.estimateGas.addChainOfThought(mockProofData);
+        // Fix: Use the right syntax for calling estimateGas in ethers v6
+        const gasEstimate = await contract.getFunction("addChainOfThought").estimateGas(mockProofData);
         gasLimit = gasEstimate.mul(120).div(100); // Add 20% buffer for safety
         console.log("Gas estimate:", gasEstimate.toString());
       } catch (gasError) {
@@ -263,7 +266,8 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       }
       
       console.log("Sending transaction with gas limit:", gasLimit.toString());
-      const tx = await contract.addChainOfThought(mockProofData, { gasLimit });
+      // Fix: Use the right syntax for calling contract methods in ethers v6
+      const tx = await contract.getFunction("addChainOfThought")(mockProofData, { gasLimit });
       
       console.log("Transaction sent:", tx.hash);
       
