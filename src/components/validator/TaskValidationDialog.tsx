@@ -19,6 +19,7 @@ import PrimeIntellectService from "@/services/providers/PrimeIntellectService";
 import flareJsonApiService from "@/services/FlareJsonApiService";
 import FlareVerificationBadge from "../validator/FlareVerificationBadge";
 import { useWallet } from "@/contexts/WalletContext";
+import flareService, { ethers } from "@/services/FlareService";
 
 interface TaskValidationDialogProps {
   open: boolean;
