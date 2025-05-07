@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -206,7 +205,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     }
   }, [selectedProvider, isFlareNetwork, switchToFlareNetwork, verificationInProgress, flareVerified]);
   
-  // Handle the provider validation with JsonAbi contract - FIX HERE
+  // Handle the provider validation with JsonAbi contract
   const handleValidateWithJsonAbi = async () => {
     if (!selectedProvider || !benchmarkData) return;
     
@@ -258,11 +257,12 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       try {
         // Fix: Use the right syntax for calling estimateGas in ethers v6
         const gasEstimate = await contract.getFunction("addChainOfThought").estimateGas(mockProofData);
-        gasLimit = gasEstimate.mul(120).div(100); // Add 20% buffer for safety
+        // Fix: Use native bigint arithmetic instead of BigNumber methods
+        gasLimit = gasEstimate * 12n / 10n; // Add 20% buffer for safety
         console.log("Gas estimate:", gasEstimate.toString());
       } catch (gasError) {
         console.warn("Gas estimation failed, using fallback value:", gasError);
-        gasLimit = 3000000; // Fallback gas limit if estimation fails
+        gasLimit = 3000000n; // Fallback gas limit if estimation fails
       }
       
       console.log("Sending transaction with gas limit:", gasLimit.toString());
