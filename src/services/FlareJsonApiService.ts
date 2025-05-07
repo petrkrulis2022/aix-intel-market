@@ -1,6 +1,6 @@
-
 import flareService, { ethers } from './FlareService';
 import { toast } from '@/components/ui/use-toast';
+import { useWallet } from '@/contexts/WalletContext';
 
 // JSON API Contract ABI from explorer
 const JSON_API_CONTRACT_ABI = [
@@ -103,17 +103,15 @@ class FlareJsonApiService {
       // Check if connected to Flare network
       const isFlare = await flareService.isFlareNetwork();
       if (!isFlare) {
-        await flareService.switchToFlareNetwork();
-        // Check again after switching
-        const isNowFlare = await flareService.isFlareNetwork();
-        if (!isNowFlare) {
-          toast({
-            title: "Wrong Network",
-            description: "Please connect to Flare Coston2 network to use JSON API",
-            variant: "destructive",
-          });
-          return null;
-        }
+        // We cannot use flareService.switchToFlareNetwork() because it doesn't exist
+        // Instead we need to use WalletContext's method, but we can't directly access it here
+        // So we'll inform the user and return null
+        toast({
+          title: "Wrong Network",
+          description: "Please connect to Flare Coston2 network to use JSON API",
+          variant: "destructive",
+        });
+        return null;
       }
       
       // Get signer
