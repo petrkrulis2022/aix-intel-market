@@ -198,6 +198,9 @@ class FlareJsonApiService {
   private contract: ethers.Contract | null = null;
   private jsonAbiContract: ethers.Contract | null = null;
   
+  // Flag to indicate if we're in development/demo mode
+  private readonly DEMO_MODE = true; // Set to false in production
+  
   /**
    * Initialize the JSON API contract
    */
@@ -277,6 +280,8 @@ class FlareJsonApiService {
         });
         return null;
       }
+      
+      console.log("Creating JsonAbi contract instance with address:", this.JSON_ABI_CONTRACT_ADDRESS);
       
       // Create contract instance
       this.jsonAbiContract = new ethers.Contract(
@@ -424,68 +429,121 @@ class FlareJsonApiService {
    * @returns Transaction receipt or null if error
    */
   public async addChainOfThought(proofData: any): Promise<boolean> {
-    // Use timeout and Promise to make non-blocking
-    return new Promise(resolve => {
+    // Use a worker or a non-blocking approach
+    return new Promise((resolve) => {
+      // Run in the next tick to avoid blocking the UI
       setTimeout(async () => {
         try {
+          // In demo mode, just simulate success
+          if (this.DEMO_MODE) {
+            console.log("DEMO MODE: Simulating addChainOfThought with data:", proofData);
+            
+            toast({
+              title: "Demo Mode: Transaction Sent",
+              description: "This is a simulated transaction (demo mode)",
+            });
+            
+            // Simulate a delay of 1.5 seconds
+            setTimeout(() => {
+              toast({
+                title: "Demo Mode: Transaction Confirmed",
+                description: "Chain of thought data simulated successfully",
+              });
+              resolve(true);
+            }, 1500);
+            
+            return;
+          }
+          
+          // Get the contract instance
+          console.log("Initializing JsonAbi contract...");
           const contract = await this.initJsonAbiContract();
+          
           if (!contract) {
+            console.error("Failed to initialize JsonAbi contract");
             resolve(false);
             return;
           }
           
+          console.log("JsonAbi contract initialized successfully");
+          
           // Show toast notification that transaction is being sent
           toast({
-            title: "Sending Transaction",
-            description: "Please approve the transaction in your wallet to record chain of thought data",
+            title: "Preparing Transaction",
+            description: "Creating blockchain transaction for chain of thought data...",
           });
           
-          // Set gas limit to prevent UI freezing issues
+          // Set high gas limit to prevent out of gas errors
+          // This might be too high in production, adjust based on actual usage
           const options = {
-            gasLimit: 3000000
+            gasLimit: 5000000
           };
           
-          // Make the contract call
-          const tx = await contract.addChainOfThought(proofData, options);
-          console.log("Transaction sent:", tx.hash);
+          console.log("Sending addChainOfThought transaction with options:", options);
+          console.log("Proof data:", JSON.stringify(proofData));
           
-          // Show toast notification that transaction is being processed
-          toast({
-            title: "Transaction Sent",
-            description: "Waiting for blockchain confirmation...",
-          });
-          
-          // For demo purposes, consider transaction successful without waiting
-          toast({
-            title: "Chain of Thought Recorded",
-            description: "Your data is being recorded on the blockchain",
-          });
-          
-          resolve(true);
-          
-          // Try to wait for confirmation in background
+          // Make the contract call using a promisified approach to avoid UI blocking
           try {
-            const receipt = await tx.wait();
-            console.log("Transaction confirmed:", receipt);
+            const tx = await contract.addChainOfThought(proofData, options);
+            console.log("Transaction sent:", tx.hash);
             
             toast({
-              title: "Transaction Confirmed",
-              description: "Your data has been successfully recorded on the blockchain",
+              title: "Transaction Sent",
+              description: "Your data is being recorded on the blockchain",
             });
-          } catch (error) {
-            console.error("Error waiting for transaction confirmation:", error);
-            // Transaction is still processing, but we've already returned success
+            
+            // Return success immediately, don't wait for confirmation
+            resolve(true);
+            
+            // Wait for confirmation in the background
+            try {
+              const receipt = await Promise.race([
+                tx.wait(),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error("Transaction confirmation timeout")), 30000)
+                )
+              ]);
+              
+              console.log("Transaction confirmed:", receipt);
+              
+              toast({
+                title: "Transaction Confirmed",
+                description: "Your chain of thought data has been recorded successfully",
+              });
+            } catch (waitError) {
+              console.warn("Transaction confirmation is taking longer than expected:", waitError);
+              // This is fine, we've already returned success to the user
+            }
+          } catch (txError: any) {
+            console.error("Error sending transaction:", txError);
+            
+            // Check for user rejection
+            if (txError.code === 4001) { // MetaMask user rejected error
+              toast({
+                title: "Transaction Rejected",
+                description: "You rejected the transaction request",
+                variant: "destructive",
+              });
+            } else {
+              toast({
+                title: "Transaction Failed",
+                description: txError.message || "Failed to send transaction",
+                variant: "destructive",
+              });
+            }
+            
+            resolve(false);
           }
         } catch (error: any) {
-          console.error("Error adding chain of thought:", error);
+          console.error("Error in addChainOfThought:", error);
           toast({
-            title: "Transaction Failed",
-            description: error.message || "Failed to record chain of thought data",
+            title: "Error",
+            description: error.message || "An unexpected error occurred",
             variant: "destructive",
           });
           resolve(false);
         }
-      }, 100); // Small delay to prevent UI blocking
+      }, 0); // Run in next tick
     });
   }
   
@@ -536,53 +594,95 @@ class FlareJsonApiService {
   
   /**
    * Validate provider pricing using Flare JSON API
-   * For demonstration purposes, this uses mock data but the interface
-   * is designed to work with the actual Flare JSON API contract
+   * This implementation uses a non-blocking approach to prevent UI freezes
    */
   public async validateProviderPricing(providerId: string): Promise<{
     isValid: boolean;
     data?: any;
     requestId?: number;
   }> {
-    try {
-      // For demonstration purposes
-      if (providerId === "primeintellect") {
-        // In a real implementation, this would use the actual contract
-        const requestId = await this.requestJson(
-          "https://api.primeintellect.ai/v1/pricing",
-          "GET",
-          "$.pricing"
-        );
-        
-        if (!requestId) {
-          return { isValid: false };
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        try {
+          // In demo mode, use mock data
+          if (this.DEMO_MODE || providerId === "primeintellect") {
+            console.log(`DEMO MODE: Simulating validation for provider ${providerId}`);
+            
+            // Simulate blockchain delay
+            await new Promise(r => setTimeout(r, 1000));
+            
+            // Create a random request ID for tracking
+            const requestId = Math.floor(Math.random() * 1000000);
+            
+            resolve({
+              isValid: true,
+              data: MOCK_RESPONSES['primeintellect/pricing'],
+              requestId
+            });
+            return;
+          }
+          
+          // For production use with real contract
+          const requestId = await this.requestJson(
+            `https://api.${providerId}.ai/v1/pricing`,
+            "GET",
+            "$.pricing"
+          );
+          
+          if (!requestId) {
+            resolve({ isValid: false });
+            return;
+          }
+          
+          // Wait a short time for the request to be processed
+          await new Promise(r => setTimeout(r, 2000));
+          
+          // Check if the request is ready
+          const isReady = await this.isRequestReady(requestId);
+          if (!isReady) {
+            resolve({
+              isValid: false,
+              requestId
+            });
+            return;
+          }
+          
+          // Get the result
+          const resultString = await this.getResult(requestId);
+          if (!resultString) {
+            resolve({
+              isValid: false,
+              requestId
+            });
+            return;
+          }
+          
+          // Parse the result
+          try {
+            const data = JSON.parse(resultString);
+            resolve({
+              isValid: true,
+              data,
+              requestId
+            });
+          } catch (parseError) {
+            console.error("Error parsing JSON result:", parseError);
+            resolve({
+              isValid: false,
+              requestId
+            });
+          }
+        } catch (error) {
+          console.error("Error validating provider pricing:", error);
+          toast({
+            title: "Validation Error",
+            description: "Failed to validate provider pricing through Flare",
+            variant: "destructive",
+          });
+          resolve({ isValid: false });
         }
-        
-        // Simulate a delay to represent blockchain confirmation time
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Return mock data for demo purposes
-        return {
-          isValid: true,
-          data: MOCK_RESPONSES['primeintellect/pricing'],
-          requestId
-        };
-      } else {
-        // For other providers, return a generic response
-        return {
-          isValid: false,
-          data: { message: "Provider not supported by Flare JSON API" }
-        };
-      }
-    } catch (error) {
-      console.error("Error validating provider pricing:", error);
-      toast({
-        title: "Validation Error",
-        description: "Failed to validate provider pricing through Flare",
-        variant: "destructive",
-      });
-      return { isValid: false };
-    }
+      }, 0); // Run in next tick
+    });
   }
 }
 

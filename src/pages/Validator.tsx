@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import ValidatorDashboard from "@/components/dashboards/ValidatorDashboard";
@@ -15,6 +15,7 @@ const Validator = () => {
   const navigate = useNavigate();
   const [showRecallSetup, setShowRecallSetup] = useState(false);
   const [isPageBusy, setIsPageBusy] = useState(false);
+  const [lastUserInteraction, setLastUserInteraction] = useState(Date.now());
 
   // Redirect if no wallet or wrong role
   React.useEffect(() => {
@@ -22,6 +23,11 @@ const Validator = () => {
       navigate("/");
     }
   }, [account, navigate]);
+
+  // Record user interactions to detect unresponsive page
+  const recordInteraction = useCallback(() => {
+    setLastUserInteraction(Date.now());
+  }, []);
 
   // Check Recall configuration on component mount
   useEffect(() => {
@@ -33,7 +39,18 @@ const Validator = () => {
         description: "Please configure your Recall Network connection to validate tasks.",
       });
     }
-  }, []);
+
+    // Add interaction listeners
+    window.addEventListener('mousemove', recordInteraction);
+    window.addEventListener('click', recordInteraction);
+    window.addEventListener('keydown', recordInteraction);
+
+    return () => {
+      window.removeEventListener('mousemove', recordInteraction);
+      window.removeEventListener('click', recordInteraction);
+      window.removeEventListener('keydown', recordInteraction);
+    };
+  }, [recordInteraction]);
   
   // Add event listener to detect unresponsive page
   useEffect(() => {
@@ -45,10 +62,16 @@ const Validator = () => {
       const checkPageResponse = () => {
         const now = Date.now();
         const timeSinceLastResponse = now - lastResponseTime;
+        const timeSinceUserInteraction = now - lastUserInteraction;
         
-        if (timeSinceLastResponse > 5000) {
+        if (timeSinceLastResponse > 5000 && timeSinceUserInteraction < 2000) {
           console.warn("Page may be unresponsive");
-          // We might want to show a warning to the user here
+          // Show a warning toast if needed
+          toast({
+            title: "Page is busy",
+            description: "The application is processing a heavy task, please wait...",
+            duration: 3000,
+          });
         }
         
         lastResponseTime = now;
@@ -63,7 +86,7 @@ const Validator = () => {
         window.clearInterval(checkInterval);
       }
     };
-  }, [isPageBusy]);
+  }, [isPageBusy, lastUserInteraction]);
 
   const handleSetupComplete = () => {
     setShowRecallSetup(false);
@@ -118,7 +141,7 @@ const Validator = () => {
                 </div>
               </div>
             ) : (
-              <ValidatorDashboard />
+              <ValidatorDashboard setPageBusy={setIsPageBusy} />
             )}
           </>
         )}
