@@ -19,7 +19,7 @@ export interface PrimeIntellectPricing {
   gpuHourlyRate: number;  // USD per hour
   cpuHourlyRate: number;  // USD per hour
   memoryRate: number;     // USD per GB-hour
-  storageRate: number;    // USD per GB-month
+  storageRate?: number;   // USD per GB-month (make this optional)
 }
 
 /**

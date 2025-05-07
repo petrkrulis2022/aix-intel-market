@@ -1,5 +1,5 @@
 
-import PrimeIntellectService from './PrimeIntellectService';
+import PrimeIntellectService, { PrimeIntellectPricing } from './PrimeIntellectService';
 
 export interface ComputeProvider {
   id: string;
@@ -104,7 +104,12 @@ class ComputeProvidersService {
           provider.id === "primeintellect" 
             ? { 
                 ...provider, 
-                pricing: realPricing 
+                pricing: {
+                  gpuHourlyRate: realPricing.gpuHourlyRate,
+                  cpuHourlyRate: realPricing.cpuHourlyRate,
+                  memoryRate: realPricing.memoryRate,
+                  storageRate: realPricing.storageRate
+                }
               } 
             : provider
         );

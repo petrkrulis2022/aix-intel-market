@@ -1,4 +1,3 @@
-
 import { AIXValuation } from './recall/RecallConfig';
 
 export interface MarketplaceTask {
@@ -17,6 +16,8 @@ export interface MarketplaceTask {
   };
   status: 'listed' | 'sold' | 'expired';
   tags: string[];
+  provider?: string; // Add provider as optional
+  costBreakdown?: any; // Add cost breakdown as optional
 }
 
 export class MarketplaceService {
@@ -86,6 +87,8 @@ export class MarketplaceService {
       resources: any;
       aixValuation: AIXValuation;
       tags?: string[];
+      provider?: string; // Add provider as optional
+      costBreakdown?: any; // Add cost breakdown as optional
     }
   ): Promise<MarketplaceTask> {
     // In a real implementation, this would make an API call to a backend
@@ -108,7 +111,9 @@ export class MarketplaceService {
         duration: `${(taskDetails.resources.duration_seconds / 60).toFixed(1)} minutes`
       },
       status: 'listed',
-      tags: taskDetails.tags || []
+      tags: taskDetails.tags || [],
+      provider: taskDetails.provider, // Include provider if provided
+      costBreakdown: taskDetails.costBreakdown // Include cost breakdown if provided
     };
     
     // Add to local cache
