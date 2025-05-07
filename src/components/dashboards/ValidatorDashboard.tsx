@@ -9,6 +9,7 @@ import MarketplaceSubmissionDialog from "@/components/validator/MarketplaceSubmi
 import MarketplaceService from "@/services/MarketplaceService";
 import { useWallet } from "@/contexts/WalletContext";
 import FileStorageService from "@/services/recall/FileStorageService";
+import TaskValidationDialog from "@/components/validator/TaskValidationDialog";
 
 // Import refactored components
 import ValidatorHeader from "./validator/ValidatorHeader";
@@ -25,9 +26,14 @@ const ValidatorDashboard = () => {
   const [showRecallConfig, setShowRecallConfig] = useState(false);
   const [showChainOfThought, setShowChainOfThought] = useState(false);
   const [showMarketplaceSubmission, setShowMarketplaceSubmission] = useState(false);
+  const [showTaskValidation, setShowTaskValidation] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedTaskData, setSelectedTaskData] = useState<any>(null);
+  const [selectedTaskName, setSelectedTaskName] = useState<string>("");
   const [resourceData, setResourceData] = useState<any>(null);
   const [aixValuation, setAixValuation] = useState<any>(null);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
+  const [costBreakdown, setCostBreakdown] = useState<any>(null);
   const [showRecallPortalInfo, setShowRecallPortalInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [discoveredTasks, setDiscoveredTasks] = useState<string[]>([]);
@@ -130,34 +136,16 @@ const ValidatorDashboard = () => {
       
       if (content) {
         const jsonData = JSON.parse(content);
-        if (jsonData.length > 0 && jsonData[0].benchmarks) {
-          // Set the resource data from the first entry's benchmarks
-          setResourceData({
-            cpu: jsonData[0].benchmarks.compute?.cpu?.estimatedLoadFactor || 0.5,
-            gpu: jsonData[0].benchmarks.compute?.gpu?.estimatedLoadFactor || 0.3,
-            time: jsonData[0].benchmarks.time?.totalSeconds || 30,
-            complexity: jsonData[0].benchmarks.reasoning?.complexityScore || 1
-          });
-          
-          // Calculate AIX valuation from the benchmarks
-          setAixValuation({
-            total: (
-              (jsonData[0].benchmarks.compute?.cpu?.estimatedLoadFactor || 0.5) * 10 +
-              (jsonData[0].benchmarks.compute?.gpu?.estimatedLoadFactor || 0.3) * 15 +
-              (jsonData[0].benchmarks.reasoning?.complexityScore || 1) * 5
-            ).toFixed(2)
-          });
-          
-          // Set the task ID and open the marketplace submission dialog
-          setSelectedTaskId(fileName);
-          setShowMarketplaceSubmission(true);
-        } else {
-          toast({
-            title: "Invalid Task Data",
-            description: "The selected file doesn't contain valid benchmark data",
-            variant: "destructive",
-          });
-        }
+        
+        // Find the task info to get the title
+        const taskInfo = convertedTasks.find(task => task.fileName === fileName);
+        const taskName = taskInfo ? taskInfo.title : fileName;
+        
+        // Set the task data and show the validation dialog
+        setSelectedTaskId(fileName);
+        setSelectedTaskName(taskName);
+        setSelectedTaskData(jsonData);
+        setShowTaskValidation(true);
       }
     } catch (error) {
       toast({
@@ -188,7 +176,10 @@ const ValidatorDashboard = () => {
         agent: "Validator Agent",
         resources: resourceData,
         aixValuation,
-        tags
+        tags,
+        // Add provider and cost information if available
+        provider: selectedProviderId || undefined,
+        costBreakdown: costBreakdown || undefined
       });
       
       // Update listed tasks
@@ -271,6 +262,17 @@ const ValidatorDashboard = () => {
     setResourceData(data);
     setAixValuation(aix);
   };
+  
+  const handleValidationComplete = (data: any) => {
+    // Update resource data, AIX valuation, and provider selection
+    setResourceData(data.resourceData);
+    setAixValuation(data.aixValuation);
+    setSelectedProviderId(data.providerId);
+    setCostBreakdown(data.costBreakdown);
+    
+    // Open the marketplace submission dialog
+    setShowMarketplaceSubmission(true);
+  };
 
   const isTaskListed = (taskId: string) => {
     return listedTasks.includes(taskId);
@@ -331,6 +333,16 @@ const ValidatorDashboard = () => {
         resourceData={resourceData}
         aixValuation={aixValuation}
         onSubmit={handleSubmitToMarketplace}
+      />
+
+      {/* Task Validation Dialog */}
+      <TaskValidationDialog
+        open={showTaskValidation}
+        onOpenChange={setShowTaskValidation}
+        taskData={selectedTaskData}
+        taskName={selectedTaskName}
+        fileName={selectedTaskId || ""}
+        onValidationComplete={handleValidationComplete}
       />
 
       {/* Recall Portal Info Dialog */}
