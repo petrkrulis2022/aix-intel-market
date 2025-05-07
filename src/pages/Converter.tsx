@@ -5,40 +5,54 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FileBrowser from "@/components/recall/FileBrowser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, FileJson } from "lucide-react";
+import { Download, FileJson, Loader2 } from "lucide-react";
 import FileStorageService from "@/services/recall/FileStorageService";
 import { toast } from "@/components/ui/use-toast";
 
 const Converter = () => {
   const [selectedJsonFile, setSelectedJsonFile] = useState<string | null>(null);
   const [jsonContent, setJsonContent] = useState<any[] | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSelectJsonFile = (filename: string) => {
+  const handleSelectJsonFile = async (filename: string) => {
     setSelectedJsonFile(filename);
-    const content = FileStorageService.getFileContent(filename);
+    setIsLoading(true);
     
-    if (content) {
-      try {
-        setJsonContent(JSON.parse(content));
+    try {
+      const content = await FileStorageService.getFileContent(filename, "json");
+      
+      if (content) {
+        try {
+          setJsonContent(JSON.parse(content));
+          toast({
+            title: "File Loaded",
+            description: `Loaded ${filename} successfully`,
+          });
+        } catch (error) {
+          toast({
+            title: "Parse Error",
+            description: "Failed to parse JSON content",
+            variant: "destructive",
+          });
+          setJsonContent(null);
+        }
+      } else {
         toast({
-          title: "File Loaded",
-          description: `Loaded ${filename} successfully`,
-        });
-      } catch (error) {
-        toast({
-          title: "Parse Error",
-          description: "Failed to parse JSON content",
+          title: "Load Error",
+          description: "File content not found",
           variant: "destructive",
         });
         setJsonContent(null);
       }
-    } else {
+    } catch (error) {
       toast({
-        title: "Load Error",
-        description: "File content not found",
+        title: "Error",
+        description: "An error occurred while loading the file",
         variant: "destructive",
       });
       setJsonContent(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -117,7 +131,11 @@ const Converter = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {jsonContent ? (
+                    {isLoading ? (
+                      <div className="flex items-center justify-center p-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : jsonContent ? (
                       <>
                         <div className="max-h-80 overflow-y-auto rounded-md bg-muted p-4 mb-4">
                           <pre className="text-xs whitespace-pre-wrap">

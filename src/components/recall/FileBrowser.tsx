@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileJson, Folder } from "lucide-react";
+import { FileJson, Folder, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import FileStorageService from "@/services/recall/FileStorageService";
+import { toast } from "@/components/ui/use-toast";
 
 interface FileBrowserProps {
   filetype: "jsonl" | "json";
@@ -23,6 +24,11 @@ const FileBrowser: React.FC<FileBrowserProps> = ({ filetype, onSelectFile, class
         setFiles(filesList);
       } catch (error) {
         console.error(`Error loading ${filetype} files:`, error);
+        toast({
+          title: "Error Loading Files",
+          description: `Failed to load ${filetype.toUpperCase()} files from database`,
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -34,10 +40,8 @@ const FileBrowser: React.FC<FileBrowserProps> = ({ filetype, onSelectFile, class
   if (isLoading) {
     return (
       <Card className={`p-4 ${className}`}>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
+        <div className="flex items-center justify-center p-6">
+          <Loader2 className="h-10 w-10 animate-spin text-primary/70" />
         </div>
       </Card>
     );

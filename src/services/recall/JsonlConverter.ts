@@ -121,8 +121,8 @@ export class JsonlConverter {
    */
   public static async convertFileByName(filename: string): Promise<any[]> {
     try {
-      // Get JSONL content from storage
-      const jsonlContent = FileStorageService.getFileContent(filename);
+      // Get JSONL content from Supabase
+      const jsonlContent = await FileStorageService.getFileContent(filename, "jsonl");
       
       if (!jsonlContent) {
         throw new Error(`File ${filename} not found in storage`);

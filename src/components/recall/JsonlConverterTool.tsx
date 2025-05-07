@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { FileJson, Download, Upload, Folder } from "lucide-react";
+import { FileJson, Download, Upload, Folder, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import JsonlConverter from "@/services/recall/JsonlConverter";
 import FileStorageService from "@/services/recall/FileStorageService";
@@ -12,12 +12,13 @@ import FileBrowser from "./FileBrowser";
 const JsonlConverterTool: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [convertedData, setConvertedData] = useState<any[] | null>(null);
   const [isDownloadable, setIsDownloadable] = useState(false);
   const [selectedJsonlFile, setSelectedJsonlFile] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("upload");
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     
     if (selectedFile) {
@@ -34,6 +35,7 @@ const JsonlConverterTool: React.FC = () => {
       setFile(selectedFile);
       setConvertedData(null);
       setIsDownloadable(false);
+      setIsUploading(true);
 
       // Save the file to storage
       const reader = new FileReader();
@@ -48,7 +50,7 @@ const JsonlConverterTool: React.FC = () => {
             
             toast({
               title: "File Saved",
-              description: `${selectedFile.name} has been saved to storage`,
+              description: `${selectedFile.name} has been saved to database`,
             });
           } catch (error) {
             toast({
@@ -56,6 +58,8 @@ const JsonlConverterTool: React.FC = () => {
               description: `Failed to save ${selectedFile.name}`,
               variant: "destructive",
             });
+          } finally {
+            setIsUploading(false);
           }
         }
       };
@@ -89,13 +93,14 @@ const JsonlConverterTool: React.FC = () => {
     
     try {
       let jsonData;
+      let jsonFilename: string;
       
       if (file) {
         // Convert uploaded file
         jsonData = await JsonlConverter.convertFile(file);
+        jsonFilename = file.name.replace('.jsonl', '.json');
         
         // Save the JSON result
-        const jsonFilename = file.name.replace('.jsonl', '.json');
         await FileStorageService.saveFile(
           jsonFilename,
           JSON.stringify(jsonData, null, 2),
@@ -104,6 +109,7 @@ const JsonlConverterTool: React.FC = () => {
       } else if (selectedJsonlFile) {
         // Convert stored file
         jsonData = await JsonlConverter.convertFileByName(selectedJsonlFile);
+        jsonFilename = selectedJsonlFile.replace('.jsonl', '.json');
       }
       
       setConvertedData(jsonData);
@@ -125,11 +131,15 @@ const JsonlConverterTool: React.FC = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!convertedData) return;
     
     try {
-      // Create JSON content
+      const jsonFilename = file ? 
+        file.name.replace('.jsonl', '.json') : 
+        selectedJsonlFile?.replace('.jsonl', '.json') || 'converted.json';
+        
+      // Get JSON content
       const jsonContent = JSON.stringify(convertedData, null, 2);
       
       // Create blob and download link
@@ -139,9 +149,7 @@ const JsonlConverterTool: React.FC = () => {
       // Create download link and click it
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
-      downloadLink.download = file ? 
-        file.name.replace('.jsonl', '.json') : 
-        selectedJsonlFile?.replace('.jsonl', '.json') || 'converted.json';
+      downloadLink.download = jsonFilename;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -188,18 +196,25 @@ const JsonlConverterTool: React.FC = () => {
                 accept=".jsonl"
                 className="hidden"
                 onChange={handleFileChange}
+                disabled={isUploading}
               />
               <label 
                 htmlFor="jsonl-file" 
-                className="flex flex-col items-center justify-center cursor-pointer"
+                className={`flex flex-col items-center justify-center ${isUploading ? 'opacity-70' : 'cursor-pointer'}`}
               >
-                <Upload className="w-8 h-8 mb-2 text-primary" />
+                {isUploading ? (
+                  <Loader2 className="w-8 h-8 mb-2 text-primary animate-spin" />
+                ) : (
+                  <Upload className="w-8 h-8 mb-2 text-primary" />
+                )}
                 <span className="text-sm font-medium">
-                  {file ? file.name : "Select JSONL file"}
+                  {file ? file.name : isUploading ? "Uploading..." : "Select JSONL file"}
                 </span>
-                <span className="text-xs text-muted-foreground mt-1">
-                  Click to browse files
-                </span>
+                {!isUploading && (
+                  <span className="text-xs text-muted-foreground mt-1">
+                    Click to browse files
+                  </span>
+                )}
               </label>
             </div>
           </TabsContent>
@@ -217,10 +232,17 @@ const JsonlConverterTool: React.FC = () => {
           <div className="pt-2">
             <Button 
               onClick={handleConvert}
-              disabled={isConverting}
+              disabled={isConverting || isUploading}
               className="w-full"
             >
-              {isConverting ? "Converting..." : "Convert to JSON with Resource Estimates"}
+              {isConverting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Converting...
+                </>
+              ) : (
+                "Convert to JSON with Resource Estimates"
+              )}
             </Button>
           </div>
         )}
