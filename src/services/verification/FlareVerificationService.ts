@@ -1,3 +1,4 @@
+
 import flareJsonApiService from "@/services/FlareJsonApiService";
 import flareService, { ethers } from "@/services/FlareService";
 import { toast } from "@/components/ui/use-toast";
@@ -97,6 +98,23 @@ class FlareVerificationService {
       
       console.log("Validating provider with JsonAbi contract...");
       
+      // Force MetaMask to prompt for wallet connection if needed
+      const provider = await flareService.getProvider();
+      if (!provider) {
+        throw new Error("MetaMask provider not available");
+      }
+      
+      const accounts = await provider.listAccounts();
+      if (accounts.length === 0) {
+        await provider.send("eth_requestAccounts", []);
+      }
+      
+      // Get latest signer to ensure MetaMask is initialized
+      const signer = await flareService.getSigner();
+      if (!signer) {
+        throw new Error("Signer not available. Please connect your wallet.");
+      }
+      
       const contract = await flareJsonApiService.initJsonAbiContract();
       if (!contract) {
         throw new Error("Failed to initialize JsonAbi contract");
@@ -114,6 +132,21 @@ class FlareVerificationService {
       }
       
       console.log("Sending transaction with gas limit:", gasLimit.toString());
+      
+      // Make sure we're connected to the wallet before sending transaction
+      await signer.getAddress();
+      
+      // Force a UI update to MetaMask by explicitly calling signMessage before transaction
+      // This helps ensure MetaMask is properly initialized and responsive
+      try {
+        await signer.signMessage("Verifying provider pricing with Flare Network");
+        console.log("Message signed successfully, proceeding with transaction");
+      } catch (signError) {
+        console.warn("User declined message signing:", signError);
+        throw new Error("Transaction cancelled: wallet confirmation required");
+      }
+      
+      // Send the actual transaction
       const tx = await contract.getFunction("addChainOfThought")(mockProofData, { gasLimit });
       
       console.log("Transaction sent:", tx.hash);

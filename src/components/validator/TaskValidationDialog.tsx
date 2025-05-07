@@ -238,7 +238,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
   };
   
   // Complete the validation process
-  const handleComplete = useCallback(() => {
+  const handleComplete = useCallback(async () => {
     if (!benchmarkData || !selectedProvider || !costBreakdown) {
       toast({
         title: "Missing Information",
@@ -248,10 +248,42 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       return;
     }
     
-    // For Prime Intellect provider, verify if needed
+    // For Prime Intellect provider, verify prices with Flare before completing
     if (!flareVerified && !verificationStarted && selectedProvider === "primeintellect") {
-      // This starts verification in background without blocking
-      handleValidateWithJsonAbi();
+      toast({
+        title: "Starting Verification",
+        description: "Initiating verification with Flare Network...",
+      });
+      
+      // Force verification for Prime Intellect before proceeding
+      try {
+        setValidating(true);
+        const success = await flareVerificationService.validateWithJsonAbi(selectedProvider);
+        
+        if (!success) {
+          toast({
+            title: "Verification Required",
+            description: "Please verify the provider prices with Flare Network first",
+            variant: "destructive",
+          });
+          setValidating(false);
+          return;
+        }
+        
+        // Mark as started if successful
+        setVerificationStarted(true);
+        setValidating(false);
+      } catch (error) {
+        console.error("Error during verification:", error);
+        setValidating(false);
+        
+        toast({
+          title: "Verification Failed",
+          description: "Could not verify provider prices with Flare Network. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     // Calculate AIX valuation based on benchmark data
@@ -263,7 +295,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         performance_score: calculatePerformanceScore(benchmarkData),
         energy_score: calculateEnergyScore(benchmarkData),
       },
-      flare_verified: flareVerified || verificationStarted // Consider started verification as verified for the demo
+      flare_verified: flareVerified || verificationStarted
     };
     
     console.log("Completing validation with data:", {
@@ -283,7 +315,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     
     // Close the dialog
     onOpenChange(false);
-  }, [benchmarkData, selectedProvider, costBreakdown, flareVerified, verificationStarted, handleValidateWithJsonAbi, onValidationComplete, onOpenChange]);
+  }, [benchmarkData, selectedProvider, costBreakdown, flareVerified, verificationStarted, onValidationComplete, onOpenChange, setValidating]);
 
   // Function to show explorer for the transaction
   const handleShowFlareExplorer = () => {
@@ -402,11 +434,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           </Button>
           <Button 
             onClick={handleComplete} 
-            disabled={!selectedProvider || !costBreakdown}
+            disabled={!selectedProvider || !costBreakdown || validating}
             className="bg-primary hover:bg-primary/90"
           >
             <Check className="h-4 w-4 mr-2" />
-            {flareVerified ? "Complete Validation" : "Verify & Complete"}
+            {validating ? "Verifying..." : flareVerified ? "Complete Validation" : "Verify & Complete"}
           </Button>
         </div>
       </DialogContent>
