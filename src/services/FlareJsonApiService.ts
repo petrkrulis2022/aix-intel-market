@@ -103,12 +103,17 @@ class FlareJsonApiService {
       // Check if connected to Flare network
       const isFlare = await flareService.isFlareNetwork();
       if (!isFlare) {
-        toast({
-          title: "Wrong Network",
-          description: "Please connect to Flare Coston2 network to use JSON API",
-          variant: "destructive",
-        });
-        return null;
+        await flareService.switchToFlareNetwork();
+        // Check again after switching
+        const isNowFlare = await flareService.isFlareNetwork();
+        if (!isNowFlare) {
+          toast({
+            title: "Wrong Network",
+            description: "Please connect to Flare Coston2 network to use JSON API",
+            variant: "destructive",
+          });
+          return null;
+        }
       }
       
       // Get signer
@@ -158,20 +163,43 @@ class FlareJsonApiService {
       if (!contract) return null;
       
       // Make the request
-      const tx = await contract.requestJson(url, method, path);
-      const receipt = await tx.wait();
+      console.log(`Requesting JSON from ${url} with method ${method} and path ${path}`);
       
-      // Parse events to get request ID
-      // Note: This is a simplified implementation
-      // In reality, you'd need to parse the event logs
+      // Show toast notification that transaction is being sent
+      toast({
+        title: "Sending Transaction",
+        description: "Please approve the transaction in your wallet to validate pricing data",
+      });
+      
+      // Make the contract call
+      const tx = await contract.requestJson(url, method, path);
+      console.log("Transaction sent:", tx.hash);
+      
+      // Show toast notification that transaction is being processed
+      toast({
+        title: "Transaction Sent",
+        description: "Waiting for blockchain confirmation...",
+      });
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
       
       // For demo, return a random request ID
-      return Math.floor(Math.random() * 1000000);
-    } catch (error) {
+      // In production, you would get this from the transaction events
+      const requestId = Math.floor(Math.random() * 1000000);
+      
+      toast({
+        title: "Request Confirmed",
+        description: `Your JSON API request has been confirmed (ID: ${requestId})`,
+      });
+      
+      return requestId;
+    } catch (error: any) {
       console.error("Error requesting JSON data:", error);
       toast({
-        title: "Request Failed",
-        description: "Failed to request JSON data from the API",
+        title: "Transaction Failed",
+        description: error.message || "Failed to request JSON data from the API",
         variant: "destructive",
       });
       return null;
@@ -232,24 +260,35 @@ class FlareJsonApiService {
     try {
       // For demonstration purposes
       if (providerId === "primeintellect") {
-        // In a real implementation, this would use the actual contract:
-        // const requestId = await this.requestJson(
-        //   "https://api.primeintellect.ai/v1/pricing",
-        //   "GET",
-        //   "$.pricing"
-        // );
+        // In a real implementation, this would use the actual contract
+        const requestId = await this.requestJson(
+          "https://api.primeintellect.ai/v1/pricing",
+          "GET",
+          "$.pricing"
+        );
         
-        // Mock implementation
-        const mockRequestId = Math.floor(Math.random() * 1000000);
+        if (!requestId) {
+          return { isValid: false };
+        }
         
         // Simulate a delay to represent blockchain confirmation time
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Check if request is ready (mock - in reality would check the contract)
+        const isReady = await this.isRequestReady(requestId);
+        if (!isReady) {
+          console.log("Request not ready yet, waiting...");
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+        
+        // Get result (mock - in reality would get from contract)
+        console.log("Getting result for request", requestId);
         
         // Return mock data
         return {
           isValid: true,
           data: MOCK_RESPONSES['primeintellect/pricing'],
-          requestId: mockRequestId
+          requestId
         };
       } else {
         // For other providers, return a generic response

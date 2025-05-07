@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, FileCheck, Shield, Calculator, ShoppingCart } from "lucide-react";
+import { CheckCircle2, FileCheck, Shield, Calculator, ShoppingCart, ExternalLink } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import FlareVerificationBadge from "@/components/validator/FlareVerificationBadge";
 
@@ -44,6 +44,10 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
       });
     }
   };
+  
+  const handleOpenFlareExplorer = () => {
+    window.open("https://coston2-explorer.flare.network/address/0xfC3E77Ef092Fe649F3Dbc22A11aB8a986d3a2F2F", "_blank");
+  };
 
   return (
     <Card className="border-border/50 bg-card">
@@ -59,6 +63,7 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
                 isVerified={isFlareVerified} 
                 providerId={providerId} 
                 size="sm" 
+                onClick={handleOpenFlareExplorer}
               />
             )}
             <Badge variant="outline" className="bg-green-500/20 text-green-500 border-green-500/30">

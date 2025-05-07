@@ -18,6 +18,8 @@ import ProviderSelector from "./ProviderSelector";
 import ComputeProvidersService, { ComputeProvider } from "@/services/providers/ComputeProvidersService";
 import PrimeIntellectService from "@/services/providers/PrimeIntellectService";
 import flareJsonApiService from "@/services/FlareJsonApiService";
+import FlareVerificationBadge from "../validator/FlareVerificationBadge";
+import { useWallet } from "@/contexts/WalletContext";
 
 interface TaskValidationDialogProps {
   open: boolean;
@@ -54,6 +56,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       memory?: number;
     };
   } | null>(null);
+  const { switchToFlareNetwork, isFlareNetwork } = useWallet();
   
   // Extract benchmark data from task data
   const benchmarkData = taskData && taskData[0]?.benchmarks ? {
@@ -141,9 +144,25 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       return;
     }
     
+    // Check if connected to Flare network and switch if necessary
+    if (!isFlareNetwork) {
+      const switched = await switchToFlareNetwork();
+      if (!switched) {
+        toast({
+          title: "Network Switch Required",
+          description: "Please switch to Flare Network to verify prices",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setValidating(true);
     try {
+      console.log("Starting price verification with Flare JSON API...");
       const result = await flareJsonApiService.validateProviderPricing(selectedProvider);
+      
+      console.log("Verification result:", result);
       
       if (result.isValid) {
         setFlareVerified(true);
@@ -187,9 +206,27 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     
     // If not already verified, attempt to verify with Flare JSON API
     if (!flareVerified && selectedProvider === "primeintellect") {
+      // Check if connected to Flare network and switch if necessary
+      if (!isFlareNetwork) {
+        const switched = await switchToFlareNetwork();
+        if (!switched) {
+          toast({
+            title: "Network Switch Required",
+            description: "Please switch to Flare Network to verify prices",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       setValidating(true);
       try {
         console.log("Verifying prices with Flare JSON API...");
+        toast({
+          title: "Verifying Prices",
+          description: "Please approve the transaction in your wallet to validate pricing data.",
+        });
+        
         const result = await flareJsonApiService.validateProviderPricing(selectedProvider);
         
         if (result.isValid) {
@@ -199,7 +236,12 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
             description: `${selectedProvider} prices have been verified using Flare's JSON API.`,
           });
         } else {
-          // Continue with unverified prices if verification fails
+          // Ask user if they want to continue with unverified prices
+          if (!confirm("Price verification failed. Do you want to continue with unverified prices?")) {
+            setValidating(false);
+            return;
+          }
+          
           toast({
             title: "Using Unverified Prices",
             description: "Proceeding with unverified provider prices. Some features may be limited.",
@@ -207,7 +249,12 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         }
       } catch (error) {
         console.error('Error verifying prices with Flare JSON API:', error);
-        // Continue with unverified prices
+        
+        // Ask user if they want to continue with unverified prices
+        if (!confirm("Price verification failed. Do you want to continue with unverified prices?")) {
+          setValidating(false);
+          return;
+        }
       } finally {
         setValidating(false);
       }
@@ -271,6 +318,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       calculatePerformanceScore(data) +
       calculateEnergyScore(data)
     );
+  };
+
+  // Function to show explorer for the transaction
+  const handleShowFlareExplorer = () => {
+    window.open("https://coston2-explorer.flare.network/address/0xfC3E77Ef092Fe649F3Dbc22A11aB8a986d3a2F2F", "_blank");
   };
 
   return (
@@ -424,6 +476,14 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
                             <span className="text-sm">
                               Pricing verified by Flare Network JSON API contract
                             </span>
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              onClick={handleShowFlareExplorer} 
+                              className="ml-auto p-0 text-green-600 underline"
+                            >
+                              View on explorer
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -445,7 +505,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
             className="bg-primary hover:bg-primary/90"
           >
             <Check className="h-4 w-4 mr-2" />
-            Complete Validation
+            {flareVerified ? "Complete Validation" : "Verify & Complete"}
           </Button>
         </div>
       </DialogContent>
