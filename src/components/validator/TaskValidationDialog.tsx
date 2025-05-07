@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -10,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check } from "lucide-react";
+import { Check, AlertTriangle } from "lucide-react";
 
 import ProviderSelector from "./ProviderSelector";
 import ComputeProvidersService, { ComputeProvider } from "@/services/providers/ComputeProvidersService";
@@ -58,6 +57,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
   } | null>(null);
   const [verificationInProgress, setVerificationInProgress] = useState(false);
   const [verificationStarted, setVerificationStarted] = useState(false);
+  const [testingTransaction, setTestingTransaction] = useState(false);
   const { switchToFlareNetwork, isFlareNetwork } = useWallet();
   
   // Extract benchmark data from task data
@@ -290,6 +290,37 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     flareVerificationService.openFlareExplorer();
   };
 
+  // New function to test MetaMask transaction signing
+  const handleTestTransaction = async () => {
+    if (testingTransaction) return;
+    
+    setTestingTransaction(true);
+    try {
+      if (!isFlareNetwork) {
+        const switched = await switchToFlareNetwork();
+        if (!switched) {
+          toast({
+            title: "Network Switch Required",
+            description: "Please switch to Flare Network to test transaction signing",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      await flareVerificationService.createMockTransaction();
+    } catch (error) {
+      console.error("Error testing transaction:", error);
+      toast({
+        title: "Transaction Test Failed",
+        description: "Failed to create mock transaction for signing",
+        variant: "destructive",
+      });
+    } finally {
+      setTestingTransaction(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -304,6 +335,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           <TabsList>
             <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
             <TabsTrigger value="providers">Compute Providers</TabsTrigger>
+            <TabsTrigger value="test">Test Wallet</TabsTrigger>
           </TabsList>
           <TabsContent value="benchmarks">
             <BenchmarkVisualization 
@@ -332,6 +364,34 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
                   onShowFlareExplorer={handleShowFlareExplorer}
                 />
               )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="test">
+            <div className="space-y-6 mt-4 p-4 border rounded-lg bg-muted/20">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <h3 className="font-medium">Wallet Connection Testing</h3>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mb-4">
+                If your page becomes unresponsive during validation, you can test your MetaMask connection 
+                here without performing any real transactions. This will prompt MetaMask to sign a mock 
+                transaction (0 FLR) without sending it to the blockchain.
+              </p>
+              
+              <Button
+                onClick={handleTestTransaction}
+                disabled={testingTransaction}
+                variant="outline"
+                className="w-full"
+              >
+                {testingTransaction ? "Testing..." : "Test MetaMask Signing"}
+              </Button>
+              
+              <div className="text-xs text-muted-foreground mt-2">
+                Note: This will only prompt for signing and will not send any actual transactions.
+              </div>
             </div>
           </TabsContent>
         </Tabs>
