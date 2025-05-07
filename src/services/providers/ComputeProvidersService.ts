@@ -10,7 +10,7 @@ export interface ComputeProvider {
   pricing: {
     gpuHourlyRate: number;
     cpuHourlyRate: number;
-    memoryRate?: number;
+    memoryRate: number; // Changed to required to match PrimeIntellectPricing
     storageRate?: number;
   };
   realTime: boolean; // Whether pricing is fetched in real-time
@@ -148,7 +148,16 @@ class ComputeProvidersService {
     
     // Special handling for Prime Intellect using its service
     if (providerId === "primeintellect" && PrimeIntellectService.isConfigured()) {
-      return PrimeIntellectService.calculateCost(resourceData, provider.pricing);
+      // Convert provider pricing to PrimeIntellectPricing format
+      // Note: memoryRate is now required, but storageRate is optional
+      const primeIntellectPricing: PrimeIntellectPricing = {
+        gpuHourlyRate: provider.pricing.gpuHourlyRate,
+        cpuHourlyRate: provider.pricing.cpuHourlyRate,
+        memoryRate: provider.pricing.memoryRate,
+        ...(provider.pricing.storageRate ? { storageRate: provider.pricing.storageRate } : {})
+      };
+
+      return PrimeIntellectService.calculateCost(resourceData, primeIntellectPricing);
     }
     
     // For other providers, calculate using the common logic
