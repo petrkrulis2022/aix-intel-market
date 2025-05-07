@@ -14,6 +14,7 @@ const Validator = () => {
   const { account, userRole, setUserRole } = useWallet();
   const navigate = useNavigate();
   const [showRecallSetup, setShowRecallSetup] = useState(false);
+  const [isPageBusy, setIsPageBusy] = useState(false);
 
   // Redirect if no wallet or wrong role
   React.useEffect(() => {
@@ -33,6 +34,36 @@ const Validator = () => {
       });
     }
   }, []);
+  
+  // Add event listener to detect unresponsive page
+  useEffect(() => {
+    let checkInterval: number;
+    
+    if (isPageBusy) {
+      let lastResponseTime = Date.now();
+      
+      const checkPageResponse = () => {
+        const now = Date.now();
+        const timeSinceLastResponse = now - lastResponseTime;
+        
+        if (timeSinceLastResponse > 5000) {
+          console.warn("Page may be unresponsive");
+          // We might want to show a warning to the user here
+        }
+        
+        lastResponseTime = now;
+      };
+      
+      // Check every 2 seconds if page is responsive
+      checkInterval = window.setInterval(checkPageResponse, 2000);
+    }
+    
+    return () => {
+      if (checkInterval) {
+        window.clearInterval(checkInterval);
+      }
+    };
+  }, [isPageBusy]);
 
   const handleSetupComplete = () => {
     setShowRecallSetup(false);

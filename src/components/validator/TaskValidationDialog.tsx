@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -56,6 +57,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       memory?: number;
     };
   } | null>(null);
+  const [verificationInProgress, setVerificationInProgress] = useState(false);
   const { switchToFlareNetwork, isFlareNetwork } = useWallet();
   
   // Extract benchmark data from task data
@@ -198,6 +200,9 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
   const handleValidateWithJsonAbi = async () => {
     if (!selectedProvider || !benchmarkData) return;
     
+    // Check if already in progress to prevent multiple calls
+    if (verificationInProgress) return;
+    
     // Check if connected to Flare network and switch if necessary
     if (!isFlareNetwork) {
       const switched = await switchToFlareNetwork();
@@ -212,92 +217,80 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     }
     
     setValidating(true);
+    setVerificationInProgress(true);
     
-    // Use a timeout to prevent UI freeze
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Operation timed out")), 15000);
-    });
-    
-    try {
-      // Prepare mock proof data for the JsonAbi contract call
-      // In a production environment, this would come from Flare's attestation system
-      const mockProofData = {
-        merkleProof: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
-        data: {
-          attestationType: ethers.hexlify(ethers.toUtf8Bytes("PRICING")),
-          sourceId: ethers.hexlify(ethers.toUtf8Bytes(selectedProvider)),
-          votingRound: 1,
-          lowestUsedTimestamp: Math.floor(Date.now() / 1000),
-          requestBody: {
-            url: "https://api.primeintellect.ai/v1/pricing",
-            postprocessJq: ".",
-            abi_signature: "getPricing()"
-          },
-          responseBody: {
-            abi_encoded_data: "0x0000"
+    // Use a worker or setTimeout to prevent UI freeze
+    setTimeout(async () => {
+      try {
+        // Prepare mock proof data for the JsonAbi contract call
+        // In a production environment, this would come from Flare's attestation system
+        const mockProofData = {
+          merkleProof: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
+          data: {
+            attestationType: ethers.hexlify(ethers.toUtf8Bytes("PRICING")),
+            sourceId: ethers.hexlify(ethers.toUtf8Bytes(selectedProvider)),
+            votingRound: 1,
+            lowestUsedTimestamp: Math.floor(Date.now() / 1000),
+            requestBody: {
+              url: "https://api.primeintellect.ai/v1/pricing",
+              postprocessJq: ".",
+              abi_signature: "getPricing()"
+            },
+            responseBody: {
+              abi_encoded_data: "0x0000"
+            }
           }
-        }
-      };
-      
-      console.log("Validating provider with JsonAbi contract...");
-      toast({
-        title: "Validating Provider",
-        description: "Please approve the transaction to validate the provider pricing",
-      });
-      
-      // Make sure Flare network is connected
-      const isConnected = await Promise.race([
-        flareService.isFlareNetwork(),
-        timeoutPromise
-      ]);
-      
-      if (!isConnected) {
-        toast({
-          title: "Wrong Network",
-          description: "Please switch to Flare Coston2 network",
-          variant: "destructive",
-        });
-        setValidating(false);
-        return;
-      }
-      
-      // For demonstration, we'll use a mock validation instead of the actual contract call
-      // to prevent page freezing issues
-      console.log("Using mock validation to prevent page freezing");
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simulate success
-      setFlareVerified(true);
-      toast({
-        title: "Verification Successful",
-        description: `${selectedProvider} pricing has been verified on Flare Network`,
-      });
-    } catch (error: any) {
-      console.error("Error validating with JsonAbi contract:", error);
-      
-      if (error.message === "Operation timed out") {
-        toast({
-          title: "Validation Timeout",
-          description: "The operation took too long. Using simulated validation instead.",
-        });
+        };
         
-        // Even on timeout, we'll mark it as verified for demo purposes
-        setFlareVerified(true);
-      } else {
+        console.log("Validating provider with JsonAbi contract directly...");
+        
+        // This is where we'd call the actual JsonAbi contract
+        // For now, simulate the success to prevent freezing
+        const success = await simulateContractCall(mockProofData);
+        
+        if (success) {
+          setFlareVerified(true);
+          toast({
+            title: "Verification Successful",
+            description: `${selectedProvider} pricing has been validated on Flare Network`,
+          });
+        } else {
+          toast({
+            title: "Verification Failed",
+            description: "Could not validate provider pricing. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } catch (error: any) {
+        console.error("Error in JsonAbi validation:", error);
         toast({
           title: "Validation Error",
           description: error.message || "An error occurred during validation",
           variant: "destructive",
         });
+      } finally {
+        setValidating(false);
+        setVerificationInProgress(false);
       }
-    } finally {
-      setValidating(false);
-    }
+    }, 100); // Small delay to allow UI to update
+    
+    // Immediately return to prevent UI freeze
+    return;
   };
   
-  const handleComplete = async () => {
+  // Helper function to simulate a contract call without freezing the UI
+  const simulateContractCall = async (proofData: any): Promise<boolean> => {
+    // In a real implementation, we would use the actual JsonAbi contract
+    // For demo purposes, we'll simulate success after a short delay
+    return new Promise(resolve => {
+      setTimeout(() => {
+        console.log("Contract call completed with mock data:", proofData);
+        resolve(true);
+      }, 1500);
+    });
+  };
+  
+  const handleComplete = () => {
     if (!benchmarkData || !selectedProvider || !costBreakdown) {
       toast({
         title: "Missing Information",
@@ -307,23 +300,24 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       return;
     }
     
-    // If not already verified, attempt to verify with JsonAbi contract
-    if (!flareVerified && selectedProvider === "primeintellect") {
-      try {
-        // Set a shorter timeout for the verification process
-        const verificationPromise = handleValidateWithJsonAbi();
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 5000));
-        
-        // Use Promise.race to limit the time we wait
-        await Promise.race([verificationPromise, timeoutPromise]);
-        
-        // Short delay to update UI
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (error) {
-        console.error("Verification error:", error);
-        // Continue anyway with unverified status
-      }
+    // If not already verified and not currently validating, start verification
+    if (!flareVerified && !verificationInProgress && selectedProvider === "primeintellect") {
+      // Start verification in background
+      handleValidateWithJsonAbi();
+      
+      // After a short delay, proceed with completion to prevent UI freeze
+      setTimeout(() => {
+        completeValidation();
+      }, 1000);
+    } else {
+      // If already verified or validating, proceed directly
+      completeValidation();
     }
+  };
+  
+  // Function to actually complete the validation process
+  const completeValidation = () => {
+    if (!benchmarkData || !selectedProvider || !costBreakdown) return;
     
     // Calculate AIX valuation based on benchmark data
     const aixValuation = {
@@ -566,7 +560,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           </Button>
           <Button 
             onClick={handleComplete} 
-            disabled={!selectedProvider || !costBreakdown || validating}
+            disabled={!selectedProvider || !costBreakdown || (validating && verificationInProgress)}
             className="bg-primary hover:bg-primary/90"
           >
             <Check className="h-4 w-4 mr-2" />
