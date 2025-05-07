@@ -21,57 +21,123 @@ export class JsonlConverter {
         // Parse the JSON line
         const entry = JSON.parse(line);
         
-        // Estimate resource usage based on the log content
-        const { cpuUsage, gpuUsage, timeUsage } = this.estimateResourceUsage(
+        // Get enhanced resource estimates for the entry
+        const resourceEstimates = this.estimateResourceUsage(
           // The log content could be in different fields depending on the format
           entry.log || entry.content || entry.message || JSON.stringify(entry)
         );
         
-        // Add CPU and GPU usage estimates to the entry
+        // Add detailed benchmarks to the entry
         return {
           ...entry,
-          resources: {
-            CPU: cpuUsage.toFixed(2),
-            GPU: gpuUsage.toFixed(2),
-            timeSeconds: timeUsage.toFixed(2)
-          }
+          benchmarks: resourceEstimates.estimatedMetrics
         };
       } catch (error) {
         console.error('Error processing JSONL line:', error);
         return null;
       }
-    }).filter(Boolean); // Remove any null entries from failed parsing
+    }).filter(entry => entry !== null); // Remove any null entries from failed parsing
     
     return jsonEntries;
   }
   
   /**
-   * Estimate CPU/GPU usage based on chain of thought complexity
-   * This is a simple heuristic model - in a real system, you'd use more sophisticated metrics
+   * Estimate CPU/GPU usage, time, energy, and reasoning complexity based on chain of thought log content.
+   * This remains a heuristic model. For actual values, direct monitoring tools are required.
    * @param logContent - The log content to analyze
-   * @returns Estimated CPU and GPU usage
+   * @returns Estimated benchmark metrics
    */
-  private static estimateResourceUsage(logContent: string): { 
-    cpuUsage: number; 
-    gpuUsage: number;
-    timeUsage: number;
+  private static estimateResourceUsage(logContent: string): {
+      estimatedMetrics: {
+          reasoning: {
+              stepCount: number;
+              complexityScore: number;
+          };
+          compute: {
+              cpu: { units: string; estimatedLoadFactor: number; };
+              gpu: { units: string; estimatedLoadFactor: number; };
+          };
+          time: {
+              totalSeconds: number;
+          };
+          energy: {
+              estimatedUnits: string;
+              consumptionFactor: number;
+          };
+      };
   } {
-    // Count tokens as a simple metric for computational complexity
-    const tokenCount = logContent.split(/\s+/).length;
-    
-    // Count certain keywords that might indicate more intensive operations
-    const llmCount = (logContent.match(/LLM|GPT|model|inference|embedding/gi) || []).length;
-    const mathCount = (logContent.match(/calculate|compute|algorithm|matrix|tensor/gi) || []).length;
-    
-    // Calculate complexity factors
-    const complexityFactor = 0.5 + (llmCount * 0.1) + (mathCount * 0.2);
-    
-    // Simple heuristic: longer reasoning chains with more complex operations use more resources
-    const cpuUsage = Math.min(100, tokenCount * 0.3 * complexityFactor); // CPU units based on tokens
-    const gpuUsage = Math.min(100, tokenCount * 0.2 * complexityFactor + llmCount * 2); // GPU units with emphasis on LLM ops
-    const timeUsage = tokenCount * 0.05 + cpuUsage * 0.1; // Estimated time in seconds
-    
-    return { cpuUsage, gpuUsage, timeUsage };
+      const tokenCount = logContent.split(/\s+/).length;
+
+      // Keywords for different operation types
+      const llmKeywords = /LLM|GPT|model|inference|embedding|generate|translate|summarize|completion/gi;
+      const mathKeywords = /calculate|compute|algorithm|matrix|tensor|solve|equation|math/gi;
+      const dataKeywords = /data|process|parse|load|save|query|filter|sort|analyze|retrieve|extract/gi;
+      const planningKeywords = /plan|step|sequence|decide|reason|think|strategize|reflect|evaluate/gi;
+      const toolUseKeywords = /tool_use|api_call|external_function|invoke_tool|action/gi;
+
+      // Count occurrences
+      const llmCount = (logContent.match(llmKeywords) || []).length;
+      const mathCount = (logContent.match(mathKeywords) || []).length;
+      const dataCount = (logContent.match(dataKeywords) || []).length;
+      const planningCount = (logContent.match(planningKeywords) || []).length;
+      const toolCount = (logContent.match(toolUseKeywords) || []).length;
+
+      // Estimate step count (simple proxy, assumes newlines or specific markers might denote steps)
+      let stepCount = (logContent.match(/\nStep \d+:|\n- /gi) || []).length;
+      if (stepCount === 0 && planningCount > 0) stepCount = planningCount; 
+      if (stepCount === 0 && tokenCount > 50) stepCount = Math.max(1, Math.floor(tokenCount / 200));
+      stepCount = Math.max(1, stepCount); // Ensure at least one step
+
+      const baseComplexity = tokenCount / 200; 
+
+      const reasoningComplexityScore = baseComplexity + (planningCount * 0.5) + (mathCount * 0.3) + (llmCount * 0.2);
+      
+      let cpuLoadFactor = (tokenCount / 2000) + 
+                          (dataCount * 0.15) +    
+                          (planningCount * 0.1) + 
+                          (mathCount * 0.05);     
+      cpuLoadFactor = Math.min(1, Math.max(0.05, cpuLoadFactor));
+
+      let gpuLoadFactor = (llmCount * 0.25) +     
+                          (mathCount * 0.1);      
+      gpuLoadFactor = (llmCount > 0 || (mathCount > 2 && tokenCount > 500)) ? Math.min(1, Math.max(0.1, gpuLoadFactor)) : Math.min(1, Math.max(0.01, gpuLoadFactor));
+
+      let totalSeconds = (tokenCount * 0.015) +   
+                         (llmCount * 0.8) +      
+                         (mathCount * 0.4) +
+                         (dataCount * 0.25) +
+                         (planningCount * 0.15) +
+                         (toolCount * 0.6);      
+      totalSeconds = Math.max(0.05, totalSeconds);
+
+      let energyConsumptionFactor = ((cpuLoadFactor * 0.4) + (gpuLoadFactor * 0.6)) * (totalSeconds / 30); 
+      energyConsumptionFactor = Math.min(1, Math.max(0.01, energyConsumptionFactor));
+
+      return {
+          estimatedMetrics: {
+              reasoning: {
+                  stepCount: stepCount,
+                  complexityScore: parseFloat(reasoningComplexityScore.toFixed(3)),
+              },
+              compute: {
+                  cpu: {
+                      units: "Normalized Load Factor (0-1)",
+                      estimatedLoadFactor: parseFloat(cpuLoadFactor.toFixed(3)),
+                  },
+                  gpu: {
+                      units: "Normalized Load Factor (0-1)",
+                      estimatedLoadFactor: parseFloat(gpuLoadFactor.toFixed(3)),
+                  },
+              },
+              time: {
+                  totalSeconds: parseFloat(totalSeconds.toFixed(3)),
+              },
+              energy: {
+                  estimatedUnits: "Normalized Consumption Factor (0-1)",
+                  consumptionFactor: parseFloat(energyConsumptionFactor.toFixed(3)),
+              }
+          }
+      };
   }
   
   /**
