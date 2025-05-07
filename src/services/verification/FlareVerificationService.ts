@@ -1,0 +1,148 @@
+
+import flareJsonApiService from "@/services/FlareJsonApiService";
+import flareService, { ethers } from "@/services/FlareService";
+import { toast } from "@/components/ui/use-toast";
+
+class FlareVerificationService {
+  /**
+   * Validates provider pricing using Flare JSON API
+   * This implementation uses a non-blocking approach to prevent UI freezes
+   */
+  public async validateProviderPricing(providerId: string): Promise<{
+    isValid: boolean;
+    requestId?: number;
+  }> {
+    if (!providerId) {
+      toast({
+        title: "Provider Required",
+        description: "Please select a provider to verify prices.",
+        variant: "destructive",
+      });
+      return { isValid: false };
+    }
+    
+    try {
+      console.log("Starting price verification with Flare JSON API for", providerId);
+      const result = await flareJsonApiService.validateProviderPricing(providerId);
+      
+      console.log("Verification result:", result);
+      
+      if (result.isValid) {
+        toast({
+          title: "Prices Verified",
+          description: `${providerId} prices have been verified using Flare's JSON API contract.`,
+        });
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: "Provider prices could not be verified with Flare JSON API.",
+          variant: "destructive",
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error verifying prices with Flare JSON API:', error);
+      toast({
+        title: "Verification Error",
+        description: "An error occurred during price verification with Flare JSON API.",
+        variant: "destructive",
+      });
+      return { isValid: false };
+    }
+  }
+  
+  /**
+   * Handle verification with JsonAbi contract
+   */
+  public async validateWithJsonAbi(selectedProvider: string): Promise<boolean> {
+    if (!selectedProvider) {
+      toast({
+        title: "Provider Required",
+        description: "Please select a provider to validate.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Check if connected to Flare network
+    const isFlareNetwork = await flareService.isFlareNetwork();
+    
+    if (!isFlareNetwork) {
+      toast({
+        title: "Network Switch Required",
+        description: "Please switch to Flare Network to validate with JsonAbi",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    try {
+      const mockProofData = {
+        merkleProof: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
+        data: {
+          attestationType: ethers.hexlify(ethers.toUtf8Bytes("PRICING")),
+          sourceId: ethers.hexlify(ethers.toUtf8Bytes(selectedProvider || "")),
+          votingRound: 1,
+          lowestUsedTimestamp: Math.floor(Date.now() / 1000),
+          requestBody: {
+            url: "https://api.primeintellect.ai/v1/pricing",
+            postprocessJq: ".",
+            abi_signature: "getPricing()",
+          },
+          responseBody: {
+            abi_encoded_data: "0x0000",
+          },
+        },
+      };
+      
+      console.log("Validating provider with JsonAbi contract...");
+      
+      const contract = await flareJsonApiService.initJsonAbiContract();
+      if (!contract) {
+        throw new Error("Failed to initialize JsonAbi contract");
+      }
+      
+      // Try to estimate gas, but use a fallback if it fails
+      let gasLimit;
+      try {
+        const gasEstimate = await contract.getFunction("addChainOfThought").estimateGas(mockProofData);
+        gasLimit = gasEstimate * 12n / 10n; // Add 20% buffer for safety
+        console.log("Gas estimate:", gasEstimate.toString());
+      } catch (gasError) {
+        console.warn("Gas estimation failed, using fallback value:", gasError);
+        gasLimit = 3000000n; // Fallback gas limit if estimation fails
+      }
+      
+      console.log("Sending transaction with gas limit:", gasLimit.toString());
+      const tx = await contract.getFunction("addChainOfThought")(mockProofData, { gasLimit });
+      
+      console.log("Transaction sent:", tx.hash);
+      
+      toast({
+        title: "Transaction Sent",
+        description: `Transaction hash: ${tx.hash}`,
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error("Error in JsonAbi validation:", error);
+      toast({
+        title: "Validation Error",
+        description: error.message || "An error occurred during validation",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }
+  
+  /**
+   * Open blockchain explorer for the transaction
+   */
+  public openFlareExplorer(): void {
+    window.open("https://coston2-explorer.flare.network/address/0xfC3E77Ef092Fe649F3Dbc22A11aB8a986d3a2F2F", "_blank");
+  }
+}
+
+const flareVerificationService = new FlareVerificationService();
+export default flareVerificationService;
