@@ -1,4 +1,3 @@
-
 /**
  * Service for interacting with Flare Network smart contracts
  */
@@ -136,6 +135,132 @@ class FlareService {
       return new ethers.Contract(address, abi, this.signer);
     } catch (error) {
       console.error("Error getting contract:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deploy a contract to the Flare Coston2 testnet
+   * @param contractABI The ABI of the contract
+   * @param contractBytecode The bytecode of the contract
+   * @param constructorArgs The constructor arguments for the contract
+   * @returns The deployed contract instance and transaction receipt
+   */
+  async deployContract(
+    contractABI: any,
+    contractBytecode: string,
+    constructorArgs: any[] = []
+  ): Promise<{
+    contract: ethers.Contract;
+    receipt: ethers.TransactionReceipt;
+    address: string;
+  }> {
+    try {
+      if (!this.provider) await this.initProvider();
+      if (!this.provider) throw new Error("Provider not initialized");
+      
+      if (!this.signer) {
+        this.signer = await this.provider.getSigner();
+      }
+      
+      // Check if we're on the Flare network
+      const isFlare = await this.isFlareNetwork();
+      if (!isFlare) {
+        throw new Error("Please connect to Flare Coston2 network before deploying contracts");
+      }
+      
+      // Create contract factory
+      const factory = new ethers.ContractFactory(
+        contractABI,
+        contractBytecode,
+        this.signer
+      );
+      
+      // Deploy with constructor arguments if any
+      const contract = constructorArgs.length > 0
+        ? await factory.deploy(...constructorArgs)
+        : await factory.deploy();
+      
+      // Wait for deployment to complete
+      const receipt = await contract.deploymentTransaction()?.wait();
+      if (!receipt) {
+        throw new Error("Failed to get deployment transaction receipt");
+      }
+      
+      const address = await contract.getAddress();
+      
+      console.log("Contract deployed at:", address);
+      return { 
+        contract, 
+        receipt, 
+        address 
+      };
+    } catch (error) {
+      console.error("Error deploying contract:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Deploy a contract from JSON artifact (Truffle/Hardhat format)
+   * @param artifact The contract artifact with ABI and bytecode
+   * @param constructorArgs The constructor arguments for the contract
+   * @returns The deployed contract instance and transaction receipt
+   */
+  async deployContractFromArtifact(
+    artifact: { abi: any; bytecode: string },
+    constructorArgs: any[] = []
+  ): Promise<{
+    contract: ethers.Contract;
+    receipt: ethers.TransactionReceipt;
+    address: string;
+  }> {
+    return this.deployContract(
+      artifact.abi,
+      artifact.bytecode,
+      constructorArgs
+    );
+  }
+
+  /**
+   * Estimate gas for contract deployment
+   * @param contractABI The ABI of the contract
+   * @param contractBytecode The bytecode of the contract
+   * @param constructorArgs The constructor arguments for the contract
+   * @returns Estimated gas as a BigInt
+   */
+  async estimateDeploymentGas(
+    contractABI: any,
+    contractBytecode: string,
+    constructorArgs: any[] = []
+  ): Promise<bigint> {
+    try {
+      if (!this.provider) await this.initProvider();
+      if (!this.provider) throw new Error("Provider not initialized");
+      
+      if (!this.signer) {
+        this.signer = await this.provider.getSigner();
+      }
+
+      // Create contract factory
+      const factory = new ethers.ContractFactory(
+        contractABI,
+        contractBytecode,
+        this.signer
+      );
+      
+      // Estimate gas
+      const deploymentData = constructorArgs.length > 0
+        ? factory.interface.encodeDeploy(constructorArgs)
+        : factory.interface.encodeDeploy([]);
+      
+      const estimatedGas = await this.provider.estimateGas({
+        data: contractBytecode + deploymentData.slice(2)
+      });
+      
+      return estimatedGas;
+    } catch (error) {
+      console.error("Error estimating deployment gas:", error);
       throw error;
     }
   }
