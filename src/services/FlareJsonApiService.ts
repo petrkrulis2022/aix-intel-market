@@ -1,6 +1,5 @@
 import flareService, { ethers } from './FlareService';
 import { toast } from '@/components/ui/use-toast';
-import { useWallet } from '@/contexts/WalletContext';
 
 // JSON API Contract ABI from explorer
 const JSON_API_CONTRACT_ABI = [
@@ -73,6 +72,107 @@ const JSON_API_CONTRACT_ABI = [
   }
 ];
 
+// JsonAbi contract ABI
+const JSON_ABI_CONTRACT_ABI = [
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "thoughtId", "type": "uint256"},
+      {"indexed": false, "internalType": "string", "name": "userId", "type": "string"},
+      {"indexed": false, "internalType": "string", "name": "agentId", "type": "string"}
+    ],
+    "name": "ChainOfThoughtAdded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {"internalType": "bytes32[]", "name": "merkleProof", "type": "bytes32[]"},
+          {
+            "components": [
+              {"internalType": "bytes32", "name": "attestationType", "type": "bytes32"},
+              {"internalType": "bytes32", "name": "sourceId", "type": "bytes32"},
+              {"internalType": "uint64", "name": "votingRound", "type": "uint64"},
+              {"internalType": "uint64", "name": "lowestUsedTimestamp", "type": "uint64"},
+              {
+                "components": [
+                  {"internalType": "string", "name": "url", "type": "string"},
+                  {"internalType": "string", "name": "postprocessJq", "type": "string"},
+                  {"internalType": "string", "name": "abi_signature", "type": "string"}
+                ],
+                "internalType": "struct IJsonApi.RequestBody",
+                "name": "requestBody",
+                "type": "tuple"
+              },
+              {
+                "components": [
+                  {"internalType": "bytes", "name": "abi_encoded_data", "type": "bytes"}
+                ],
+                "internalType": "struct IJsonApi.ResponseBody",
+                "name": "responseBody",
+                "type": "tuple"
+              }
+            ],
+            "internalType": "struct IJsonApi.Response",
+            "name": "data",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct IJsonApi.Proof",
+        "name": "data",
+        "type": "tuple"
+      }
+    ],
+    "name": "addChainOfThought",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "name": "chainOfThoughts",
+    "outputs": [
+      {"internalType": "string", "name": "userId", "type": "string"},
+      {"internalType": "string", "name": "agentId", "type": "string"},
+      {"internalType": "string", "name": "userMessage", "type": "string"},
+      {"internalType": "string", "name": "log", "type": "string"},
+      {"internalType": "uint256", "name": "cpuUsage", "type": "uint256"},
+      {"internalType": "uint256", "name": "gpuUsage", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllChainOfThoughts",
+    "outputs": [
+      {
+        "components": [
+          {"internalType": "string", "name": "userId", "type": "string"},
+          {"internalType": "string", "name": "agentId", "type": "string"},
+          {"internalType": "string", "name": "userMessage", "type": "string"},
+          {"internalType": "string", "name": "log", "type": "string"},
+          {"internalType": "uint256", "name": "cpuUsage", "type": "uint256"},
+          {"internalType": "uint256", "name": "gpuUsage", "type": "uint256"}
+        ],
+        "internalType": "struct ChainOfThought[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "name": "thoughtIds",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 // Mock implementation for demonstration
 const MOCK_RESPONSES = {
   'primeintellect/pricing': {
@@ -91,7 +191,11 @@ const MOCK_RESPONSES = {
 class FlareJsonApiService {
   // JSON API Contract address on Coston2
   private readonly CONTRACT_ADDRESS = "0xfC3E77Ef092Fe649F3Dbc22A11aB8a986d3a2F2F";
+  // JsonAbi Contract address on Coston2 - update this to the actual deployed address
+  private readonly JSON_ABI_CONTRACT_ADDRESS = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
+  
   private contract: ethers.Contract | null = null;
+  private jsonAbiContract: ethers.Contract | null = null;
   
   /**
    * Initialize the JSON API contract
@@ -138,6 +242,54 @@ class FlareJsonApiService {
       toast({
         title: "Contract Error",
         description: "Failed to initialize JSON API contract",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }
+  
+  /**
+   * Initialize the JsonAbi contract
+   */
+  private async initJsonAbiContract() {
+    if (this.jsonAbiContract) return this.jsonAbiContract;
+    
+    try {
+      // Check if connected to Flare network
+      const isFlare = await flareService.isFlareNetwork();
+      if (!isFlare) {
+        toast({
+          title: "Wrong Network",
+          description: "Please connect to Flare Coston2 network to use JsonAbi contract",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      // Get signer
+      const signer = await flareService.getSigner();
+      if (!signer) {
+        toast({
+          title: "Wallet Not Connected",
+          description: "Please connect your wallet to use JsonAbi contract",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      // Create contract instance
+      this.jsonAbiContract = new ethers.Contract(
+        this.JSON_ABI_CONTRACT_ADDRESS,
+        JSON_ABI_CONTRACT_ABI,
+        signer
+      );
+      
+      return this.jsonAbiContract;
+    } catch (error) {
+      console.error("Error initializing JsonAbi contract:", error);
+      toast({
+        title: "Contract Error",
+        description: "Failed to initialize JsonAbi contract",
         variant: "destructive",
       });
       return null;
@@ -239,6 +391,98 @@ class FlareJsonApiService {
       toast({
         title: "Result Error",
         description: "Failed to get JSON API result",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }
+  
+  /**
+   * Get all chain of thoughts from the JsonAbi contract
+   * @returns Array of chain of thought data or null if error
+   */
+  public async getAllChainOfThoughts(): Promise<any[] | null> {
+    try {
+      const contract = await this.initJsonAbiContract();
+      if (!contract) return null;
+      
+      const thoughts = await contract.getAllChainOfThoughts();
+      return thoughts;
+    } catch (error) {
+      console.error("Error getting chain of thoughts:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch chain of thoughts from the contract",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }
+  
+  /**
+   * Get a specific chain of thought by ID
+   * @param thoughtId The ID of the chain of thought to get
+   * @returns Chain of thought data or null if error
+   */
+  public async getChainOfThought(thoughtId: number): Promise<any | null> {
+    try {
+      const contract = await this.initJsonAbiContract();
+      if (!contract) return null;
+      
+      const thought = await contract.chainOfThoughts(thoughtId);
+      return thought;
+    } catch (error) {
+      console.error("Error getting chain of thought:", error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch chain of thought #${thoughtId}`,
+        variant: "destructive",
+      });
+      return null;
+    }
+  }
+  
+  /**
+   * Add a new chain of thought to the contract
+   * @param proofData The proof data required by the contract
+   * @returns Transaction receipt or null if error
+   */
+  public async addChainOfThought(proofData: any): Promise<ethers.TransactionReceipt | null> {
+    try {
+      const contract = await this.initJsonAbiContract();
+      if (!contract) return null;
+      
+      // Show toast notification that transaction is being sent
+      toast({
+        title: "Sending Transaction",
+        description: "Please approve the transaction in your wallet to record chain of thought data",
+      });
+      
+      // Make the contract call
+      const tx = await contract.addChainOfThought(proofData);
+      console.log("Transaction sent:", tx.hash);
+      
+      // Show toast notification that transaction is being processed
+      toast({
+        title: "Transaction Sent",
+        description: "Waiting for blockchain confirmation...",
+      });
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+      
+      toast({
+        title: "Chain of Thought Recorded",
+        description: "Your data has been successfully recorded on the blockchain",
+      });
+      
+      return receipt;
+    } catch (error: any) {
+      console.error("Error adding chain of thought:", error);
+      toast({
+        title: "Transaction Failed",
+        description: error.message || "Failed to record chain of thought data",
         variant: "destructive",
       });
       return null;

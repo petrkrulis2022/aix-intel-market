@@ -19,6 +19,7 @@ interface ValidatedTaskCardProps {
   isListed?: boolean;
   isFlareVerified?: boolean;
   providerId?: string;
+  transactionHash?: string;
 }
 
 const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
@@ -32,7 +33,8 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
   onAddToMarketplace,
   isListed = false,
   isFlareVerified = false,
-  providerId
+  providerId,
+  transactionHash
 }) => {
   const handleAddToMarketplace = () => {
     if (onAddToMarketplace) {
@@ -46,7 +48,11 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
   };
   
   const handleOpenFlareExplorer = () => {
-    window.open("https://coston2-explorer.flare.network/address/0xfC3E77Ef092Fe649F3Dbc22A11aB8a986d3a2F2F", "_blank");
+    if (transactionHash) {
+      window.open(`https://coston2-explorer.flare.network/tx/${transactionHash}`, "_blank");
+    } else {
+      window.open("https://coston2-explorer.flare.network/address/0x742d35Cc6634C0532925a3b844Bc454e4438f44e", "_blank");
+    }
   };
 
   return (
@@ -111,8 +117,8 @@ const ValidatedTaskCard: React.FC<ValidatedTaskCardProps> = ({
             <Button variant="outline" size="sm" className="flex-1">
               <FileCheck className="h-4 w-4 mr-2" /> View Report
             </Button>
-            <Button variant="outline" size="sm" className="flex-1">
-              <Shield className="h-4 w-4 mr-2" /> Validation History
+            <Button variant="outline" size="sm" className="flex-1" onClick={handleOpenFlareExplorer}>
+              <Shield className="h-4 w-4 mr-2" /> Verification
             </Button>
             <Button variant="outline" size="sm" className="flex-1">
               <Calculator className="h-4 w-4 mr-2" /> AIX Calculation
