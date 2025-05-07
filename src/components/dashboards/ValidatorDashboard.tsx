@@ -8,11 +8,18 @@ import RecallConfigForm from "@/components/RecallConfigForm";
 import MarketplaceSubmissionDialog from "@/components/validator/MarketplaceSubmissionDialog";
 import MarketplaceService from "@/services/MarketplaceService";
 import { useWallet } from "@/contexts/WalletContext";
+import FileStorageService from "@/services/recall/FileStorageService";
 
 // Import refactored components
 import ValidatorHeader from "./validator/ValidatorHeader";
 import ValidatorTabs from "./validator/ValidatorTabs";
 import RecallPortalInfoDialog from "./validator/RecallPortalInfoDialog";
+
+interface TaskInfo {
+  id: string;
+  title: string;
+  fileName: string;
+}
 
 const ValidatorDashboard = () => {
   const [showRecallConfig, setShowRecallConfig] = useState(false);
@@ -25,9 +32,10 @@ const ValidatorDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [discoveredTasks, setDiscoveredTasks] = useState<string[]>([]);
   const [listedTasks, setListedTasks] = useState<string[]>([]);
+  const [convertedTasks, setConvertedTasks] = useState<TaskInfo[]>([]);
   const { account } = useWallet();
 
-  // Load listed tasks on mount
+  // Load listed tasks and converted tasks on mount
   useEffect(() => {
     const fetchListedTasks = async () => {
       try {
@@ -38,7 +46,52 @@ const ValidatorDashboard = () => {
       }
     };
     
+    const fetchConvertedTasks = async () => {
+      try {
+        const files = await FileStorageService.getFiles("json");
+        const taskInfos: TaskInfo[] = [];
+        
+        for (const fileName of files) {
+          const content = await FileStorageService.getFileContent(fileName, "json");
+          if (content) {
+            try {
+              const jsonData = JSON.parse(content);
+              if (jsonData.length > 0) {
+                // Use taskName from the data, or parse it from filename if available
+                let taskTitle = "";
+                
+                if (jsonData[0].taskName) {
+                  taskTitle = jsonData[0].taskName;
+                } else {
+                  // Try to extract task name from filename (if in format taskname_filename.json)
+                  const filenameMatch = fileName.match(/^([^_]+)_/);
+                  if (filenameMatch && filenameMatch[1]) {
+                    taskTitle = filenameMatch[1].replace(/_/g, ' ');
+                  } else {
+                    taskTitle = fileName.replace('.json', '');
+                  }
+                }
+                
+                taskInfos.push({
+                  id: fileName,
+                  title: taskTitle,
+                  fileName: fileName
+                });
+              }
+            } catch (error) {
+              console.error(`Error parsing JSON file ${fileName}:`, error);
+            }
+          }
+        }
+        
+        setConvertedTasks(taskInfos);
+      } catch (error) {
+        console.error("Error fetching converted tasks:", error);
+      }
+    };
+    
     fetchListedTasks();
+    fetchConvertedTasks();
   }, []);
 
   const handleViewChainOfThought = (taskId: string) => {
@@ -67,6 +120,53 @@ const ValidatorDashboard = () => {
     // Open marketplace submission dialog
     setSelectedTaskId(taskId);
     setShowMarketplaceSubmission(true);
+  };
+
+  const handleViewConvertedTask = async (fileName: string) => {
+    try {
+      setIsLoading(true);
+      const content = await FileStorageService.getFileContent(fileName, "json");
+      
+      if (content) {
+        const jsonData = JSON.parse(content);
+        if (jsonData.length > 0 && jsonData[0].benchmarks) {
+          // Set the resource data from the first entry's benchmarks
+          setResourceData({
+            cpu: jsonData[0].benchmarks.compute?.cpu?.estimatedLoadFactor || 0.5,
+            gpu: jsonData[0].benchmarks.compute?.gpu?.estimatedLoadFactor || 0.3,
+            time: jsonData[0].benchmarks.time?.totalSeconds || 30,
+            complexity: jsonData[0].benchmarks.reasoning?.complexityScore || 1
+          });
+          
+          // Calculate AIX valuation from the benchmarks
+          setAixValuation({
+            total: (
+              (jsonData[0].benchmarks.compute?.cpu?.estimatedLoadFactor || 0.5) * 10 +
+              (jsonData[0].benchmarks.compute?.gpu?.estimatedLoadFactor || 0.3) * 15 +
+              (jsonData[0].benchmarks.reasoning?.complexityScore || 1) * 5
+            ).toFixed(2)
+          });
+          
+          // Set the task ID and open the marketplace submission dialog
+          setSelectedTaskId(fileName);
+          setShowMarketplaceSubmission(true);
+        } else {
+          toast({
+            title: "Invalid Task Data",
+            description: "The selected file doesn't contain valid benchmark data",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error Loading Task",
+        description: "Failed to load the selected task data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmitToMarketplace = async (title: string, description: string, tags: string[]) => {
@@ -193,6 +293,8 @@ const ValidatorDashboard = () => {
         onShowChainOfThought={() => setShowChainOfThought(true)}
         discoveredTasks={discoveredTasks}
         isTaskListed={isTaskListed}
+        convertedTasks={convertedTasks}
+        onViewConvertedTask={handleViewConvertedTask}
       />
 
       {/* Recall Configuration Dialog */}

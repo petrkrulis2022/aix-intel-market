@@ -5,6 +5,15 @@ import PendingTaskCard from "./PendingTaskCard";
 import ValidatedTaskCard from "./ValidatedTaskCard";
 import RecallNetworkCard from "./RecallNetworkCard";
 import ResourceAnalysisCard from "./ResourceAnalysisCard";
+import { FileJson } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+interface TaskInfo {
+  id: string;
+  title: string;
+  fileName: string;
+}
 
 interface ValidatorTabsProps {
   resourceData: any;
@@ -15,6 +24,8 @@ interface ValidatorTabsProps {
   onOpenRecallPortal: () => void;
   onShowChainOfThought: () => void;
   discoveredTasks?: string[];
+  convertedTasks?: TaskInfo[];
+  onViewConvertedTask?: (fileName: string) => void;
   isTaskListed?: (taskId: string) => boolean;
 }
 
@@ -27,6 +38,8 @@ const ValidatorTabs: React.FC<ValidatorTabsProps> = ({
   onOpenRecallPortal,
   onShowChainOfThought,
   discoveredTasks = [],
+  convertedTasks = [],
+  onViewConvertedTask = () => {},
   isTaskListed = () => false,
 }) => {
   // Sample tasks for demo purposes
@@ -84,6 +97,7 @@ const ValidatorTabs: React.FC<ValidatorTabsProps> = ({
       <TabsList>
         <TabsTrigger value="pending">Pending Validation</TabsTrigger>
         <TabsTrigger value="validated">Validated Tasks</TabsTrigger>
+        <TabsTrigger value="converted">Converted Tasks</TabsTrigger>
         <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
         <TabsTrigger value="recall">Recall Network</TabsTrigger>
       </TabsList>
@@ -126,6 +140,52 @@ const ValidatorTabs: React.FC<ValidatorTabsProps> = ({
             verifiedValue="14.85 AIX"
             isListed={isTaskListed("task3")}
           />
+        </div>
+      </TabsContent>
+      
+      <TabsContent value="converted">
+        <div className="mt-6">
+          <h3 className="text-lg font-medium mb-3">Converted JSONL Tasks</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            These are Chain of Thought logs that have been converted with the Converter Tool.
+            You can validate these tasks to list them on the marketplace.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {convertedTasks.length > 0 ? (
+              convertedTasks.map((task) => (
+                <Card key={task.id} className="flex flex-col">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-base">
+                      <FileJson className="h-4 w-4 mr-2 text-primary" />
+                      {task.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground truncate">
+                      {task.fileName}
+                    </p>
+                    <div className="mt-6 pt-2">
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => onViewConvertedTask(task.id)}
+                        className="w-full"
+                      >
+                        Validate Task
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full py-10 text-center border rounded-md bg-muted/20">
+                <p className="text-muted-foreground">
+                  No converted tasks found. Use the Converter tool to generate tasks from JSONL logs.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </TabsContent>
       

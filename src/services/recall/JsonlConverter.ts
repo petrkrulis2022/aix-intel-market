@@ -168,12 +168,22 @@ export class JsonlConverter {
   /**
    * Convert a JSONL File object to JSON with resource estimates
    * @param file - The JSONL File object
+   * @param taskName - Optional task name for the conversion
    * @returns Promise resolving to the parsed JSON with resource estimates
    */
-  public static async convertFile(file: File): Promise<any[]> {
+  public static async convertFile(file: File, taskName?: string): Promise<any[]> {
     try {
       const jsonlContent = await this.readJSONLFile(file);
-      return this.convertJsonlToJson(jsonlContent);
+      const jsonData = this.convertJsonlToJson(jsonlContent);
+      
+      // If a task name is provided, add it to each entry
+      if (taskName) {
+        jsonData.forEach(entry => {
+          entry.taskName = taskName;
+        });
+      }
+      
+      return jsonData;
     } catch (error) {
       console.error('Error converting JSONL file:', error);
       throw error;
@@ -183,9 +193,10 @@ export class JsonlConverter {
   /**
    * Convert a JSONL file by filename to JSON and save it
    * @param filename - The JSONL filename to convert
+   * @param taskName - Optional task name for the conversion
    * @returns The converted JSON data
    */
-  public static async convertFileByName(filename: string): Promise<any[]> {
+  public static async convertFileByName(filename: string, taskName?: string): Promise<any[]> {
     try {
       // Get JSONL content from Supabase
       const jsonlContent = await FileStorageService.getFileContent(filename, "jsonl");
@@ -197,15 +208,35 @@ export class JsonlConverter {
       // Convert to JSON
       const jsonData = this.convertJsonlToJson(jsonlContent);
       
-      // Save the JSON file
-      const jsonFilename = filename.replace('.jsonl', '.json');
-      await FileStorageService.saveFile(
-        jsonFilename, 
-        JSON.stringify(jsonData, null, 2), 
-        "json"
-      );
-      
-      return jsonData;
+      // If a task name is provided, add it to each entry and use it in the filename
+      if (taskName) {
+        jsonData.forEach(entry => {
+          entry.taskName = taskName;
+        });
+        
+        // Create JSON filename with task name
+        const taskNameForFilename = taskName.replace(/[^a-zA-Z0-9]/g, '_');
+        const jsonFilename = `${taskNameForFilename}_${filename.replace('.jsonl', '.json')}`;
+        
+        // Save the JSON file with task name in filename
+        await FileStorageService.saveFile(
+          jsonFilename, 
+          JSON.stringify(jsonData, null, 2), 
+          "json"
+        );
+        
+        return jsonData;
+      } else {
+        // Save the JSON file with original name
+        const jsonFilename = filename.replace('.jsonl', '.json');
+        await FileStorageService.saveFile(
+          jsonFilename, 
+          JSON.stringify(jsonData, null, 2), 
+          "json"
+        );
+        
+        return jsonData;
+      }
     } catch (error) {
       console.error('Error converting JSONL file by name:', error);
       throw error;

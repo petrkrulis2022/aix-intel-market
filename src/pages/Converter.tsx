@@ -13,6 +13,7 @@ const Converter = () => {
   const [selectedJsonFile, setSelectedJsonFile] = useState<string | null>(null);
   const [jsonContent, setJsonContent] = useState<any[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [taskName, setTaskName] = useState<string>("");
 
   const handleSelectJsonFile = async (filename: string) => {
     setSelectedJsonFile(filename);
@@ -23,7 +24,22 @@ const Converter = () => {
       
       if (content) {
         try {
-          setJsonContent(JSON.parse(content));
+          const parsedContent = JSON.parse(content);
+          setJsonContent(parsedContent);
+          
+          // Extract task name if available in the first entry
+          if (parsedContent.length > 0 && parsedContent[0].taskName) {
+            setTaskName(parsedContent[0].taskName);
+          } else {
+            // Try to extract task name from filename (if in format taskname_filename.json)
+            const filenameMatch = filename.match(/^([^_]+)_/);
+            if (filenameMatch && filenameMatch[1]) {
+              setTaskName(filenameMatch[1].replace(/_/g, ' '));
+            } else {
+              setTaskName("");
+            }
+          }
+          
           toast({
             title: "File Loaded",
             description: `Loaded ${filename} successfully`,
@@ -35,6 +51,7 @@ const Converter = () => {
             variant: "destructive",
           });
           setJsonContent(null);
+          setTaskName("");
         }
       } else {
         toast({
@@ -43,6 +60,7 @@ const Converter = () => {
           variant: "destructive",
         });
         setJsonContent(null);
+        setTaskName("");
       }
     } catch (error) {
       toast({
@@ -51,6 +69,7 @@ const Converter = () => {
         variant: "destructive",
       });
       setJsonContent(null);
+      setTaskName("");
     } finally {
       setIsLoading(false);
     }
@@ -129,6 +148,11 @@ const Converter = () => {
                       <FileJson className="w-4 h-4 mr-2 text-primary" />
                       {selectedJsonFile || "Select a JSON file"}
                     </CardTitle>
+                    {taskName && (
+                      <div className="text-sm text-muted-foreground">
+                        Task: <span className="font-medium">{taskName}</span>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
                     {isLoading ? (

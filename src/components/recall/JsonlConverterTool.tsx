@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { FileJson, Download, Upload, Folder, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +19,7 @@ const JsonlConverterTool: React.FC = () => {
   const [isDownloadable, setIsDownloadable] = useState(false);
   const [selectedJsonlFile, setSelectedJsonlFile] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("upload");
+  const [taskName, setTaskName] = useState<string>("");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -89,6 +92,15 @@ const JsonlConverterTool: React.FC = () => {
       return;
     }
 
+    if (!taskName.trim()) {
+      toast({
+        title: "Task Name Required",
+        description: "Please enter a task name for this conversion",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsConverting(true);
     
     try {
@@ -96,9 +108,12 @@ const JsonlConverterTool: React.FC = () => {
       let jsonFilename: string;
       
       if (file) {
-        // Convert uploaded file
-        jsonData = await JsonlConverter.convertFile(file);
-        jsonFilename = file.name.replace('.jsonl', '.json');
+        // Convert uploaded file with task name
+        jsonData = await JsonlConverter.convertFile(file, taskName);
+        
+        // Create filename with task name
+        const taskNameForFilename = taskName.replace(/[^a-zA-Z0-9]/g, '_');
+        jsonFilename = `${taskNameForFilename}_${file.name.replace('.jsonl', '.json')}`;
         
         // Save the JSON result
         await FileStorageService.saveFile(
@@ -107,9 +122,12 @@ const JsonlConverterTool: React.FC = () => {
           "json"
         );
       } else if (selectedJsonlFile) {
-        // Convert stored file
-        jsonData = await JsonlConverter.convertFileByName(selectedJsonlFile);
-        jsonFilename = selectedJsonlFile.replace('.jsonl', '.json');
+        // Convert stored file with task name
+        jsonData = await JsonlConverter.convertFileByName(selectedJsonlFile, taskName);
+        
+        // Filename is handled inside convertFileByName method
+        const taskNameForFilename = taskName.replace(/[^a-zA-Z0-9]/g, '_');
+        jsonFilename = `${taskNameForFilename}_${selectedJsonlFile.replace('.jsonl', '.json')}`;
       }
       
       setConvertedData(jsonData);
@@ -117,7 +135,7 @@ const JsonlConverterTool: React.FC = () => {
       
       toast({
         title: "Conversion Successful",
-        description: `Converted ${jsonData.length} entries with resource estimates`,
+        description: `Task "${taskName}" converted with ${jsonData.length} entries`,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -135,10 +153,20 @@ const JsonlConverterTool: React.FC = () => {
     if (!convertedData) return;
     
     try {
-      const jsonFilename = file ? 
-        file.name.replace('.jsonl', '.json') : 
-        selectedJsonlFile?.replace('.jsonl', '.json') || 'converted.json';
-        
+      let jsonFilename;
+      
+      if (taskName) {
+        // Use task name in filename
+        const taskNameForFilename = taskName.replace(/[^a-zA-Z0-9]/g, '_');
+        jsonFilename = file ? 
+          `${taskNameForFilename}_${file.name.replace('.jsonl', '.json')}` : 
+          `${taskNameForFilename}_${selectedJsonlFile?.replace('.jsonl', '.json') || 'converted.json'}`;
+      } else {
+        jsonFilename = file ? 
+          file.name.replace('.jsonl', '.json') : 
+          selectedJsonlFile?.replace('.jsonl', '.json') || 'converted.json';
+      }
+      
       // Get JSON content
       const jsonContent = JSON.stringify(convertedData, null, 2);
       
@@ -228,11 +256,26 @@ const JsonlConverterTool: React.FC = () => {
           </TabsContent>
         </Tabs>
 
+        {/* Add Task Name Input */}
+        <div className="space-y-2">
+          <Label htmlFor="task-name">Task Name</Label>
+          <Input
+            id="task-name"
+            placeholder="Enter a name for this task"
+            value={taskName}
+            onChange={(e) => setTaskName(e.target.value)}
+            className="w-full"
+          />
+          <p className="text-xs text-muted-foreground">
+            The task name will be used to identify this conversion in the AIX dashboard
+          </p>
+        </div>
+
         {(file || selectedJsonlFile) && (
           <div className="pt-2">
             <Button 
               onClick={handleConvert}
-              disabled={isConverting || isUploading}
+              disabled={isConverting || isUploading || !taskName.trim()}
               className="w-full"
             >
               {isConverting ? (
