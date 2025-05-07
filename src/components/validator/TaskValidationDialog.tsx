@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check } from "lucide-react";
 
 import ProviderSelector from "./ProviderSelector";
-import ComputeProvidersService from "@/services/providers/ComputeProvidersService";
+import ComputeProvidersService, { ComputeProvider } from "@/services/providers/ComputeProvidersService";
 import PrimeIntellectService from "@/services/providers/PrimeIntellectService";
 import { useWallet } from "@/contexts/WalletContext";
 import BenchmarkVisualization from "./BenchmarkVisualization";
