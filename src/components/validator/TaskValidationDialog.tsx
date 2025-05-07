@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -280,11 +281,12 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       setVerificationStarted(true);
       
       // Use a separate non-blocking call to wait for receipt
-      setTimeout(async () => {
+      const waitForReceipt = async () => {
         try {
           const receipt = await tx.wait();
           console.log("Transaction confirmed:", receipt);
           
+          // Only update state if component is still mounted
           setFlareVerified(true);
           toast({
             title: "Verification Successful",
@@ -296,7 +298,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         } finally {
           setVerificationInProgress(false);
         }
-      }, 0);
+      };
+      
+      // Execute without awaiting to prevent blocking the UI
+      waitForReceipt();
+      
     } catch (error: any) {
       console.error("Error in JsonAbi validation:", error);
       toast({
