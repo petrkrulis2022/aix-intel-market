@@ -9,6 +9,7 @@ interface FlareVerificationBadgeProps {
   showLabel?: boolean;
   size?: "sm" | "md" | "lg";
   providerId?: string;
+  onClick?: () => void;
 }
 
 const FlareVerificationBadge: React.FC<FlareVerificationBadgeProps> = ({
@@ -16,7 +17,8 @@ const FlareVerificationBadge: React.FC<FlareVerificationBadgeProps> = ({
   className,
   showLabel = true,
   size = "md",
-  providerId
+  providerId,
+  onClick
 }) => {
   const sizeClasses = {
     sm: "text-xs py-0.5 px-1.5",
@@ -34,11 +36,12 @@ const FlareVerificationBadge: React.FC<FlareVerificationBadgeProps> = ({
   return (
     <div 
       className={cn(
-        "flex items-center gap-1.5 rounded-full border",
+        "flex items-center gap-1.5 rounded-full border cursor-pointer",
         isVerified ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-amber-500/10 text-amber-600 border-amber-500/20",
         sizeClasses[size],
         className
       )}
+      onClick={onClick}
     >
       <Shield className={cn("flex-shrink-0", size === "sm" ? "h-3 w-3" : size === "md" ? "h-3.5 w-3.5" : "h-4 w-4")} />
       {showLabel && (

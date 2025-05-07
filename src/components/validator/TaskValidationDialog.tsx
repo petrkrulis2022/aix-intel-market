@@ -189,6 +189,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     if (!flareVerified && selectedProvider === "primeintellect") {
       setValidating(true);
       try {
+        console.log("Verifying prices with Flare JSON API...");
         const result = await flareJsonApiService.validateProviderPricing(selectedProvider);
         
         if (result.isValid) {
@@ -224,6 +225,14 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       flare_verified: flareVerified
     };
     
+    console.log("Completing validation with data:", {
+      resourceData: benchmarkData,
+      aixValuation,
+      providerId: selectedProvider,
+      costBreakdown
+    });
+    
+    // Call the onValidationComplete callback with the validation data
     onValidationComplete({
       resourceData: benchmarkData,
       aixValuation,
@@ -231,6 +240,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       costBreakdown
     });
     
+    // Close the dialog
     onOpenChange(false);
   };
   
@@ -432,6 +442,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           <Button 
             onClick={handleComplete} 
             disabled={!selectedProvider || !costBreakdown || validating}
+            className="bg-primary hover:bg-primary/90"
           >
             <Check className="h-4 w-4 mr-2" />
             Complete Validation
