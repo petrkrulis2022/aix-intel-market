@@ -1,3 +1,4 @@
+
 /**
  * Service for interacting with Flare Network smart contracts
  */
@@ -151,7 +152,7 @@ class FlareService {
     contractBytecode: string,
     constructorArgs: any[] = []
   ): Promise<{
-    contract: ethers.Contract;
+    contract: any; // Changed from ethers.Contract to any to fix TypeScript error
     receipt: ethers.TransactionReceipt;
     address: string;
   }> {
@@ -211,7 +212,7 @@ class FlareService {
     artifact: { abi: any; bytecode: string },
     constructorArgs: any[] = []
   ): Promise<{
-    contract: ethers.Contract;
+    contract: any; // Changed from ethers.Contract to any to fix TypeScript error
     receipt: ethers.TransactionReceipt;
     address: string;
   }> {
