@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -22,7 +21,12 @@ interface TaskInfo {
   fileName: string;
 }
 
-const ValidatorDashboard = () => {
+// Update the interface to include setPageBusy
+interface ValidatorDashboardProps {
+  setPageBusy: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const ValidatorDashboard: React.FC<ValidatorDashboardProps> = ({ setPageBusy }) => {
   const [showRecallConfig, setShowRecallConfig] = useState(false);
   const [showChainOfThought, setShowChainOfThought] = useState(false);
   const [showMarketplaceSubmission, setShowMarketplaceSubmission] = useState(false);
@@ -277,6 +281,11 @@ const ValidatorDashboard = () => {
   const isTaskListed = (taskId: string) => {
     return listedTasks.includes(taskId);
   };
+
+  // Set page busy state when loading or performing heavy operations
+  useEffect(() => {
+    setPageBusy(isLoading);
+  }, [isLoading, setPageBusy]);
 
   return (
     <div className="p-6">
