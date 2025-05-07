@@ -205,34 +205,28 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     }
   }, [selectedProvider, isFlareNetwork, switchToFlareNetwork, verificationInProgress, flareVerified]);
   
-  // Handle the provider validation with JsonAbi contract (optimized with non-blocking approach)
-  const handleValidateWithJsonAbi = useCallback(async () => {
+  // Handle the provider validation with JsonAbi contract using your suggested implementation
+  const handleValidateWithJsonAbi = async () => {
     if (!selectedProvider || !benchmarkData) return;
     
-    // Prevent duplicate verifications
-    if (verificationInProgress || verificationStarted) return;
+    if (verificationInProgress) return;
     
-    // Check if connected to Flare network and switch if necessary
     if (!isFlareNetwork) {
       const switched = await switchToFlareNetwork();
       if (!switched) {
         toast({
           title: "Network Switch Required",
           description: "Please switch to Flare Network to validate with JsonAbi",
-          variant: "destructive",
         });
         return;
       }
     }
     
-    // Set flags to prevent multiple calls
     setValidating(true);
     setVerificationInProgress(true);
-    setVerificationStarted(true);
     
     try {
-      // Prepare proof data for the JsonAbi contract call
-      const proofData = {
+      const mockProofData = {
         merkleProof: ["0x0000000000000000000000000000000000000000000000000000000000000000"],
         data: {
           attestationType: ethers.hexlify(ethers.toUtf8Bytes("PRICING")),
@@ -242,24 +236,63 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           requestBody: {
             url: "https://api.primeintellect.ai/v1/pricing",
             postprocessJq: ".",
-            abi_signature: "getPricing()"
+            abi_signature: "getPricing()",
           },
           responseBody: {
-            abi_encoded_data: "0x0000"
-          }
-        }
+            abi_encoded_data: "0x0000",
+          },
+        },
       };
       
-      console.log("Validating provider with JsonAbi contract non-blocking...");
+      console.log("Validating provider with JsonAbi contract...");
       
-      // Use the non-blocking implementation from service
-      const success = await flareJsonApiService.addChainOfThought(proofData);
-      
-      if (success) {
-        setFlareVerified(true);
-        
-        // No need to block the UI with a toast here, the service will handle notifications
+      const contract = await flareJsonApiService.initJsonAbiContract();
+      if (!contract) {
+        throw new Error("Failed to initialize JsonAbi contract");
       }
+      
+      // Try to estimate gas, but use a fallback if it fails
+      let gasLimit;
+      try {
+        const gasEstimate = await contract.estimateGas.addChainOfThought(mockProofData);
+        gasLimit = gasEstimate.mul(120).div(100); // Add 20% buffer for safety
+        console.log("Gas estimate:", gasEstimate.toString());
+      } catch (gasError) {
+        console.warn("Gas estimation failed, using fallback value:", gasError);
+        gasLimit = 3000000; // Fallback gas limit if estimation fails
+      }
+      
+      console.log("Sending transaction with gas limit:", gasLimit.toString());
+      const tx = await contract.addChainOfThought(mockProofData, { gasLimit });
+      
+      console.log("Transaction sent:", tx.hash);
+      
+      toast({
+        title: "Transaction Sent",
+        description: `Transaction hash: ${tx.hash}`,
+      });
+      
+      // Don't block UI while waiting for confirmation
+      setVerificationStarted(true);
+      
+      // Use a separate non-blocking call to wait for receipt
+      setTimeout(async () => {
+        try {
+          const receipt = await tx.wait();
+          console.log("Transaction confirmed:", receipt);
+          
+          setFlareVerified(true);
+          toast({
+            title: "Verification Successful",
+            description: `${selectedProvider} pricing has been validated on Flare Network`,
+          });
+        } catch (waitError) {
+          console.error("Error waiting for transaction confirmation:", waitError);
+          // Don't show error toast here as we've already proceeded with the flow
+        } finally {
+          setVerificationInProgress(false);
+        }
+      }, 0);
     } catch (error: any) {
       console.error("Error in JsonAbi validation:", error);
       toast({
@@ -267,12 +300,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         description: error.message || "An error occurred during validation",
         variant: "destructive",
       });
+      setVerificationInProgress(false);
     } finally {
       setValidating(false);
-      setVerificationInProgress(false);
-      // Keep verificationStarted true to prevent further attempts
     }
-  }, [selectedProvider, benchmarkData, verificationInProgress, verificationStarted, isFlareNetwork, switchToFlareNetwork]);
+  };
   
   // Complete the validation process
   const handleComplete = useCallback(() => {

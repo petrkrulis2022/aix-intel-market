@@ -1,4 +1,3 @@
-
 import flareService, { ethers } from './FlareService';
 import { toast } from '@/components/ui/use-toast';
 
@@ -253,9 +252,9 @@ class FlareJsonApiService {
   }
   
   /**
-   * Initialize the JsonAbi contract
+   * Initialize the JsonAbi contract - now public for direct access
    */
-  private async initJsonAbiContract() {
+  public async initJsonAbiContract() {
     if (this.jsonAbiContract) return this.jsonAbiContract;
     
     try {
