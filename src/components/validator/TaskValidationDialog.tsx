@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -7,18 +8,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, AlertTriangle } from "lucide-react";
-
-import ProviderSelector from "./ProviderSelector";
-import ComputeProvidersService, { ComputeProvider } from "@/services/providers/ComputeProvidersService";
+import { ComputeProvider } from "@/services/providers/ComputeProvidersService";
+import ComputeProvidersService from "@/services/providers/ComputeProvidersService";
 import PrimeIntellectService from "@/services/providers/PrimeIntellectService";
 import { useWallet } from "@/contexts/WalletContext";
-import BenchmarkVisualization from "./BenchmarkVisualization";
-import CostEstimation from "./CostEstimation";
 import flareVerificationService from "@/services/verification/FlareVerificationService";
 import { calculateAIXValue, calculateEnergyScore, calculateHardwareScore, calculatePerformanceScore, calculateTimeScore } from "@/utils/aixCalculation";
+import TaskTabs from "./TaskTabs";
 
 interface TaskValidationDialogProps {
   open: boolean;
@@ -315,7 +313,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
     
     // Close the dialog
     onOpenChange(false);
-  }, [benchmarkData, selectedProvider, costBreakdown, flareVerified, verificationStarted, onValidationComplete, onOpenChange, setValidating]);
+  }, [benchmarkData, selectedProvider, costBreakdown, flareVerified, verificationStarted, onValidationComplete, onOpenChange]);
 
   // Function to show explorer for the transaction
   const handleShowFlareExplorer = () => {
@@ -363,70 +361,22 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="benchmarks" className="mt-4">
-          <TabsList>
-            <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
-            <TabsTrigger value="providers">Compute Providers</TabsTrigger>
-            <TabsTrigger value="test">Test Wallet</TabsTrigger>
-          </TabsList>
-          <TabsContent value="benchmarks">
-            <BenchmarkVisualization 
-              benchmarkData={benchmarkData} 
-              calculateAIXValue={calculateAIXValue} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="providers">
-            <div className="space-y-6 mt-4">
-              <ProviderSelector
-                providers={providers}
-                selectedProvider={selectedProvider}
-                onSelectProvider={handleSelectProvider}
-                loading={loading}
-              />
-              
-              {selectedProvider && costBreakdown && (
-                <CostEstimation
-                  costBreakdown={costBreakdown}
-                  selectedProvider={selectedProvider}
-                  flareVerified={flareVerified}
-                  verificationStarted={verificationStarted}
-                  validating={validating}
-                  onVerifyPrices={handleVerifyPrices}
-                  onShowFlareExplorer={handleShowFlareExplorer}
-                />
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="test">
-            <div className="space-y-6 mt-4 p-4 border rounded-lg bg-muted/20">
-              <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
-                <h3 className="font-medium">Wallet Connection Testing</h3>
-              </div>
-              
-              <p className="text-sm text-muted-foreground mb-4">
-                If your page becomes unresponsive during validation, you can test your MetaMask connection 
-                here without performing any real transactions. This will prompt MetaMask to sign a mock 
-                transaction (0 FLR) without sending it to the blockchain.
-              </p>
-              
-              <Button
-                onClick={handleTestTransaction}
-                disabled={testingTransaction}
-                variant="outline"
-                className="w-full"
-              >
-                {testingTransaction ? "Testing..." : "Test MetaMask Signing"}
-              </Button>
-              
-              <div className="text-xs text-muted-foreground mt-2">
-                Note: This will only prompt for signing and will not send any actual transactions.
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+        <TaskTabs
+          benchmarkData={benchmarkData}
+          calculateAIXValue={calculateAIXValue}
+          providers={providers}
+          selectedProvider={selectedProvider}
+          costBreakdown={costBreakdown}
+          flareVerified={flareVerified}
+          verificationStarted={verificationStarted}
+          validating={validating}
+          loading={loading}
+          testingTransaction={testingTransaction}
+          onSelectProvider={handleSelectProvider}
+          onVerifyPrices={handleVerifyPrices}
+          onShowFlareExplorer={handleShowFlareExplorer}
+          onTestTransaction={handleTestTransaction}
+        />
         
         <div className="flex justify-between items-center pt-4 mt-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
