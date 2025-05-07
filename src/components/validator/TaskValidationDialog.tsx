@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -71,6 +70,8 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
   // Load providers on mount
   useEffect(() => {
     const loadProviders = async () => {
+      if (!open) return; // Don't load if not open
+      
       setLoading(true);
       try {
         const availableProviders = await ComputeProvidersService.getAllProviders();
@@ -80,7 +81,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         const primeIntellect = availableProviders.find(p => p.id === "primeintellect");
         if (primeIntellect) {
           setSelectedProvider("primeintellect");
-        } else {
+        } else if (availableProviders.length > 0) {
           setSelectedProvider(availableProviders[0]?.id || null);
         }
       } catch (error) {
@@ -95,9 +96,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
       }
     };
     
-    if (open) {
-      loadProviders();
-    }
+    loadProviders();
   }, [open]);
   
   // Calculate costs when provider changes
@@ -110,6 +109,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
         setCostBreakdown(costs);
       } catch (error) {
         console.error('Error calculating costs:', error);
+        toast({
+          title: "Error calculating costs",
+          description: "Could not calculate costs for the selected provider.",
+          variant: "destructive",
+        });
         setCostBreakdown(null);
       }
     };
@@ -118,6 +122,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
   }, [selectedProvider, benchmarkData]);
   
   const handleSelectProvider = (providerId: string) => {
+    if (providerId === selectedProvider) return; // Don't reselect the same provider
     setSelectedProvider(providerId);
   };
   
@@ -207,11 +212,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
                     <div className="bg-muted/40 p-3 rounded-md">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm text-muted-foreground">CPU Usage</span>
-                        <span>{(benchmarkData.benchmarks.compute.cpu.estimatedLoadFactor * 100).toFixed(2)}%</span>
+                        <span>{(benchmarkData?.benchmarks.compute.cpu.estimatedLoadFactor * 100).toFixed(2)}%</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">GPU Usage</span>
-                        <span>{(benchmarkData.benchmarks.compute.gpu.estimatedLoadFactor * 100).toFixed(2)}%</span>
+                        <span>{(benchmarkData?.benchmarks.compute.gpu.estimatedLoadFactor * 100).toFixed(2)}%</span>
                       </div>
                     </div>
                   </div>
@@ -221,11 +226,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
                     <div className="bg-muted/40 p-3 rounded-md">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm text-muted-foreground">Duration</span>
-                        <span>{benchmarkData.benchmarks.time.totalSeconds.toFixed(2)} seconds</span>
+                        <span>{benchmarkData?.benchmarks.time.totalSeconds.toFixed(2)} seconds</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Energy Consumption</span>
-                        <span>{(benchmarkData.benchmarks.energy.consumptionFactor * 100).toFixed(2)}%</span>
+                        <span>{(benchmarkData?.benchmarks.energy.consumptionFactor * 100).toFixed(2)}%</span>
                       </div>
                     </div>
                   </div>
@@ -235,11 +240,11 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
                     <div className="bg-muted/40 p-3 rounded-md">
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm text-muted-foreground">Steps</span>
-                        <span>{benchmarkData.benchmarks.reasoning.stepCount}</span>
+                        <span>{benchmarkData?.benchmarks.reasoning.stepCount}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Complexity Score</span>
-                        <span>{benchmarkData.benchmarks.reasoning.complexityScore.toFixed(3)}</span>
+                        <span>{benchmarkData?.benchmarks.reasoning.complexityScore.toFixed(3)}</span>
                       </div>
                     </div>
                   </div>
@@ -249,7 +254,7 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
                   <h3 className="text-lg font-medium">Estimated AIX Value</h3>
                   <div className="bg-primary/10 p-4 rounded-md text-center">
                     <span className="text-3xl font-bold text-primary">
-                      {calculateAIXValue(benchmarkData).toFixed(2)}
+                      {benchmarkData ? calculateAIXValue(benchmarkData).toFixed(2) : "0.00"}
                     </span>
                     <span className="ml-1">AIX</span>
                   </div>
@@ -319,7 +324,10 @@ const TaskValidationDialog: React.FC<TaskValidationDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleComplete} disabled={!selectedProvider || !costBreakdown}>
+          <Button 
+            onClick={handleComplete} 
+            disabled={!selectedProvider || !costBreakdown}
+          >
             <Check className="h-4 w-4 mr-2" />
             Complete Validation
           </Button>
