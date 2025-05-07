@@ -48,7 +48,8 @@ const ValidatorDashboard = () => {
     
     const fetchConvertedTasks = async () => {
       try {
-        const files = await FileStorageService.getFiles("json");
+        // Fix: Using listFiles instead of getFiles
+        const files = await FileStorageService.listFiles("json");
         const taskInfos: TaskInfo[] = [];
         
         for (const fileName of files) {
